@@ -109,3 +109,48 @@ impl fmt::Display for Token {
         f.write_str(&(self.ttype.to_string() + " " + &self.lexeme + " " + &self.literal))
     }
 }
+
+pub struct Scanner<'a> {
+    source: &'a str,
+    start: i64,
+    current: i64,
+    line: i64,
+}
+
+impl<'a> Scanner<'a> {
+    pub fn new(source: &str) -> Scanner {
+        Scanner {
+            source: source,
+            start: 0,
+            current: 0,
+            line: 1,
+        }
+    }
+
+    pub fn scan_tokens(&mut self) -> Vec<Token> {
+        let mut tokens = vec![];
+
+        loop {
+            if self.is_at_end() {
+                break;
+            }
+
+            self.start = self.current;
+            // scan token
+            self.current += 1;
+        }
+
+        tokens.push(Token {
+            ttype: TokenType::EOF,
+            lexeme: "".to_string(),
+            literal: "".to_string(),
+            line: self.line,
+        });
+
+        tokens
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.current >= self.source.len() as i64
+    }
+}

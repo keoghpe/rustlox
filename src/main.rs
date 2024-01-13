@@ -38,13 +38,12 @@ fn prompt() {
 }
 
 fn run(source: &str) {
-    println!("{}", source);
-    // Scanner scanner = new Scanner(source);
-    // List<Token> tokens = scanner.scanTokens();
-    // For now, just print the tokens.
-    //     for (Token token : tokens) {
-    //       System.out.println(token);
-    // }
+    let mut scanner = token::Scanner::new(source);
+    let tokens = scanner.scan_tokens();
+
+    for token in tokens.into_iter() {
+        println!("{}", token);
+    }
 }
 
 fn error(line_number: i32, message: &str) {
