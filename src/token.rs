@@ -1,7 +1,6 @@
 use core::fmt;
 
-mod token;
-enum TokenType {
+pub enum TokenType {
     // Single-character tokens.
     LEFT_PAREN,
     RIGHT_PAREN,
@@ -97,12 +96,12 @@ impl fmt::Display for TokenType {
     }
 }
 
-struct Token {
-    ttype: TokenType,
-    lexeme: String,
+pub struct Token {
+    pub(crate) ttype: TokenType,
+    pub(crate) lexeme: String,
     // This should reference an object / be a generic
-    literal: String,
-    line: i64,
+    pub(crate) literal: String,
+    pub(crate) line: i64,
 }
 
 impl fmt::Display for Token {

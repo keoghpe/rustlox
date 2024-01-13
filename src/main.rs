@@ -1,9 +1,9 @@
-pub mod token;
-
 use std::{
     env, fs,
     io::{self, Write},
 };
+
+mod token;
 
 static mut HAD_ERROR: bool = false;
 
