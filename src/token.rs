@@ -1,5 +1,6 @@
 use core::fmt;
 
+#[derive(Copy, Clone)]
 pub enum TokenType {
     // Single-character tokens.
     LEFT_PAREN,
@@ -96,6 +97,7 @@ impl fmt::Display for TokenType {
     }
 }
 
+#[derive(Clone)]
 pub struct Token {
     pub(crate) ttype: TokenType,
     pub(crate) lexeme: String,
@@ -115,6 +117,7 @@ pub struct Scanner<'a> {
     start: i64,
     current: i64,
     line: i64,
+    tokens: Vec<Token>,
 }
 
 impl<'a> Scanner<'a> {
@@ -124,12 +127,11 @@ impl<'a> Scanner<'a> {
             start: 0,
             current: 0,
             line: 1,
+            tokens: vec![],
         }
     }
 
     pub fn scan_tokens(&mut self) -> Vec<Token> {
-        let mut tokens = vec![];
-
         loop {
             if self.is_at_end() {
                 break;
@@ -137,17 +139,59 @@ impl<'a> Scanner<'a> {
 
             self.start = self.current;
             // scan token
-            self.current += 1;
+            self.scan_token();
         }
 
-        tokens.push(Token {
+        self.tokens.push(Token {
             ttype: TokenType::EOF,
             lexeme: "".to_string(),
             literal: "".to_string(),
             line: self.line,
         });
 
-        tokens
+        self.tokens.clone()
+    }
+
+    fn scan_token(&mut self) {
+        let c = self.advance();
+
+        match c {
+            '(' => self.add_token_no_literal(TokenType::LEFT_PAREN),
+            ')' => self.add_token_no_literal(TokenType::RIGHT_PAREN),
+            '{' => self.add_token_no_literal(TokenType::LEFT_BRACE),
+            '}' => self.add_token_no_literal(TokenType::RIGHT_BRACE),
+            ',' => self.add_token_no_literal(TokenType::COMMA),
+            '.' => self.add_token_no_literal(TokenType::DOT),
+            '-' => self.add_token_no_literal(TokenType::MINUS),
+            '+' => self.add_token_no_literal(TokenType::PLUS),
+            ';' => self.add_token_no_literal(TokenType::SEMICOLON),
+            '*' => self.add_token_no_literal(TokenType::STAR),
+            // Do nothing for everything else for now
+            _ => (),
+        }
+    }
+
+    fn add_token_no_literal(&mut self, ttype: TokenType) {
+        self.add_token(ttype, "")
+    }
+
+    fn add_token(&mut self, ttype: TokenType, literal: &str) {
+        let text = &self.source[self.start as usize..self.current as usize];
+
+        self.tokens.push(Token {
+            ttype: ttype,
+            literal: literal.to_string(),
+            lexeme: text.to_string(),
+            line: self.line,
+        });
+    }
+
+    fn advance(&mut self) -> char {
+        self.current += 1;
+        self.source
+            .chars()
+            .nth((self.current - 1) as usize)
+            .unwrap()
     }
 
     fn is_at_end(&self) -> bool {
