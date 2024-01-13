@@ -1,4 +1,6 @@
 use core::fmt;
+use lazy_static::lazy_static;
+use std::{borrow::Borrow, collections::HashMap};
 
 #[derive(Copy, Clone)]
 pub enum TokenType {
@@ -45,6 +47,27 @@ pub enum TokenType {
     VAR,
     WHILE,
     EOF,
+}
+
+lazy_static! {
+    static ref KEYWORDS: HashMap<&'static str, TokenType> = HashMap::from([
+        ("and", TokenType::AND),
+        ("class", TokenType::CLASS),
+        ("else", TokenType::ELSE),
+        ("false", TokenType::FALSE),
+        ("for", TokenType::FOR),
+        ("fun", TokenType::FUN),
+        ("if", TokenType::IF),
+        ("nil", TokenType::NIL),
+        ("or", TokenType::OR),
+        ("print", TokenType::PRINT),
+        ("return", TokenType::RETURN),
+        ("super", TokenType::SUPER),
+        ("this", TokenType::THIS),
+        ("true", TokenType::TRUE),
+        ("var", TokenType::VAR),
+        ("while", TokenType::WHILE),
+    ]);
 }
 
 impl fmt::Display for TokenType {
@@ -224,6 +247,8 @@ impl<'a> Scanner<'a> {
             _ => {
                 if Self::is_digit(c) {
                     self.number()
+                } else if Self::is_alpha(c) {
+                    self.identifier()
                 } else {
                     // error
                 }
@@ -265,7 +290,7 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        if self.peek() == '.' && Self::is_digit(self.peekNext()) {
+        if self.peek() == '.' && Self::is_digit(self.peek_next()) {
             self.advance();
 
             loop {
@@ -279,6 +304,24 @@ impl<'a> Scanner<'a> {
 
         // TODO Convert literal to a Double
         self.add_token(TokenType::NUMBER, &self.current_string())
+    }
+
+    fn identifier(&mut self) {
+        loop {
+            if Self::is_alpha_numeric(self.peek()) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        let text = self.current_string();
+        let identifier = KEYWORDS.get(&text.borrow());
+
+        match identifier {
+            Some(keyword) => self.add_token_no_literal(*keyword),
+            None => self.add_token_no_literal(TokenType::IDENTIFIER),
+        }
     }
 
     fn add_token_no_literal(&mut self, ttype: TokenType) {
@@ -326,7 +369,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn peekNext(&self) -> char {
+    fn peek_next(&self) -> char {
         if self.current + 1 > self.source.len() as i64 {
             '\0'
         } else {
@@ -345,7 +388,15 @@ impl<'a> Scanner<'a> {
         self.source.chars().nth((self.current) as usize).unwrap()
     }
 
+    fn is_alpha_numeric(c: char) -> bool {
+        Self::is_digit(c) || Self::is_alpha(c)
+    }
+
     fn is_digit(c: char) -> bool {
         c >= '0' && c <= '9'
+    }
+
+    fn is_alpha(c: char) -> bool {
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
     }
 }
