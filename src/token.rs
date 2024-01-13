@@ -114,6 +114,7 @@ impl fmt::Display for Token {
                 + &self.lexeme
                 + " "
                 + &self.literal
+                + " "
                 + &self.line.to_string()),
         )
     }
@@ -218,9 +219,35 @@ impl<'a> Scanner<'a> {
             '\r' => {}
             '\t' => {}
             '\n' => self.line += 1,
+            '"' => self.string(),
 
             _ => (),
         }
+    }
+
+    fn string(&mut self) {
+        loop {
+            if (self.peek() == '"' || self.is_at_end()) {
+                break;
+            } else {
+                if (self.peek() == '\n') {
+                    self.line += 1;
+                }
+                self.advance();
+            }
+        }
+
+        if self.is_at_end() {
+            // TODO ERROR
+            return;
+        }
+
+        // Closing "
+        self.advance();
+
+        let value = self.current_string();
+
+        self.add_token(TokenType::STRING, &value[1..value.len() - 1])
     }
 
     fn add_token_no_literal(&mut self, ttype: TokenType) {
@@ -228,12 +255,10 @@ impl<'a> Scanner<'a> {
     }
 
     fn add_token(&mut self, ttype: TokenType, literal: &str) {
-        let text = &self.source[self.start as usize..self.current as usize];
-
         self.tokens.push(Token {
             ttype: ttype,
             literal: literal.to_string(),
-            lexeme: text.to_string(),
+            lexeme: self.current_string(),
             line: self.line,
         });
     }
@@ -268,6 +293,10 @@ impl<'a> Scanner<'a> {
         } else {
             self.current_char()
         }
+    }
+
+    fn current_string(&self) -> String {
+        self.source[self.start as usize..self.current as usize].to_string()
     }
 
     fn current_char(&self) -> char {
