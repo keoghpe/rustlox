@@ -194,6 +194,19 @@ impl<'a> Scanner<'a> {
                     self.add_token_no_literal(TokenType::GREATER);
                 }
             }
+            '/' => {
+                if self.is_match('/') {
+                    loop {
+                        if self.peek() == '\n' || self.is_at_end() {
+                            break;
+                        } else {
+                            self.advance();
+                        }
+                    }
+                } else {
+                    self.add_token_no_literal(TokenType::SLASH)
+                }
+            }
             _ => (),
         }
     }
@@ -235,6 +248,14 @@ impl<'a> Scanner<'a> {
 
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len() as i64
+    }
+
+    fn peek(&self) -> char {
+        if self.is_at_end() {
+            '\0'
+        } else {
+            self.current_char()
+        }
     }
 
     fn current_char(&self) -> char {
