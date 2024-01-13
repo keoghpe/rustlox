@@ -221,7 +221,13 @@ impl<'a> Scanner<'a> {
             '\n' => self.line += 1,
             '"' => self.string(),
 
-            _ => (),
+            _ => {
+                if Self::is_digit(c) {
+                    self.number()
+                } else {
+                    // error
+                }
+            }
         }
     }
 
@@ -248,6 +254,31 @@ impl<'a> Scanner<'a> {
         let value = self.current_string();
 
         self.add_token(TokenType::STRING, &value[1..value.len() - 1])
+    }
+
+    fn number(&mut self) {
+        loop {
+            if Self::is_digit(self.peek()) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        if self.peek() == '.' && Self::is_digit(self.peekNext()) {
+            self.advance();
+
+            loop {
+                if Self::is_digit(self.peek()) {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // TODO Convert literal to a Double
+        self.add_token(TokenType::NUMBER, &self.current_string())
     }
 
     fn add_token_no_literal(&mut self, ttype: TokenType) {
@@ -295,11 +326,26 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    fn peekNext(&self) -> char {
+        if self.current + 1 > self.source.len() as i64 {
+            '\0'
+        } else {
+            self.source
+                .chars()
+                .nth((self.current + 1) as usize)
+                .unwrap()
+        }
+    }
+
     fn current_string(&self) -> String {
         self.source[self.start as usize..self.current as usize].to_string()
     }
 
     fn current_char(&self) -> char {
         self.source.chars().nth((self.current) as usize).unwrap()
+    }
+
+    fn is_digit(c: char) -> bool {
+        c >= '0' && c <= '9'
     }
 }
