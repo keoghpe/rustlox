@@ -166,7 +166,34 @@ impl<'a> Scanner<'a> {
             '+' => self.add_token_no_literal(TokenType::PLUS),
             ';' => self.add_token_no_literal(TokenType::SEMICOLON),
             '*' => self.add_token_no_literal(TokenType::STAR),
-            // Do nothing for everything else for now
+            '!' => {
+                if self.is_match('=') {
+                    self.add_token_no_literal(TokenType::BANG_EQUAL);
+                } else {
+                    self.add_token_no_literal(TokenType::BANG);
+                }
+            }
+            '=' => {
+                if self.is_match('=') {
+                    self.add_token_no_literal(TokenType::EQUAL_EQUAL);
+                } else {
+                    self.add_token_no_literal(TokenType::EQUAL);
+                }
+            }
+            '<' => {
+                if self.is_match('=') {
+                    self.add_token_no_literal(TokenType::LESS_EQUAL);
+                } else {
+                    self.add_token_no_literal(TokenType::LESS);
+                }
+            }
+            '>' => {
+                if self.is_match('=') {
+                    self.add_token_no_literal(TokenType::GREATER_EQUAL);
+                } else {
+                    self.add_token_no_literal(TokenType::GREATER);
+                }
+            }
             _ => (),
         }
     }
@@ -187,14 +214,30 @@ impl<'a> Scanner<'a> {
     }
 
     fn advance(&mut self) -> char {
+        let current_char = self.current_char();
         self.current += 1;
-        self.source
-            .chars()
-            .nth((self.current - 1) as usize)
-            .unwrap()
+        current_char
+    }
+
+    fn is_match(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+
+        if expected != self.current_char() {
+            return false;
+        }
+
+        self.current += 1;
+
+        true
     }
 
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len() as i64
+    }
+
+    fn current_char(&self) -> char {
+        self.source.chars().nth((self.current) as usize).unwrap()
     }
 }
