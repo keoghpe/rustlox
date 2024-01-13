@@ -108,7 +108,14 @@ pub struct Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&(self.ttype.to_string() + " " + &self.lexeme + " " + &self.literal))
+        f.write_str(
+            &(self.ttype.to_string()
+                + " "
+                + &self.lexeme
+                + " "
+                + &self.literal
+                + &self.line.to_string()),
+        )
     }
 }
 
@@ -207,6 +214,11 @@ impl<'a> Scanner<'a> {
                     self.add_token_no_literal(TokenType::SLASH)
                 }
             }
+            ' ' => {}
+            '\r' => {}
+            '\t' => {}
+            '\n' => self.line += 1,
+
             _ => (),
         }
     }
