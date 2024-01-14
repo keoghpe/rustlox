@@ -1,51 +1,58 @@
-enum Expr {
+use crate::token::Token;
+
+pub enum Expr {
     Binary {
-        left: Expr,
+        left: Box<Expr>,
         operator: Token,
-        right: Expr,
+        right: Box<Expr>,
     },
     Grouping {
-        expression: Expr,
+        expression: Box<Expr>,
     },
     Literal {
         value: String,
     },
     Unary {
         operator: Token,
-        right: Expr,
+        right: Box<Expr>,
     },
 }
 
 impl Expr {
-    fn accept(&self, visitor: ExprVisitor<A>) -> A {
+    fn accept<A>(&self, visitor: &dyn ExprVisitor<A>) -> A {
         match self {
-            Expr::Binary => visitor.visit_binary_expr(&self),
-            Expr::Grouping => visitor.visit_grouping_expr(&self),
-            Expr::Literal => visitor.visit_literal_expr(&self),
-            Expr::Unary => visitor.visit_unary_expr(&self),
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => visitor.visit_binary_expr(self),
+            Expr::Grouping { expression } => visitor.visit_grouping_expr(self),
+            Expr::Literal { value } => visitor.visit_literal_expr(self),
+            Expr::Unary { operator, right } => visitor.visit_unary_expr(self),
         }
     }
 }
 
 trait ExprVisitor<A> {
-    fn visit_binary_expr(expr: Expr::Binary) -> A;
-    fn visit_grouping_expr(expr: Expr::Grouping) -> A;
-    fn visit_literal_expr(expr: Expr::Literal) -> A;
-    fn visit_unary_expr(expr: Expr::Unary) -> A;
+    fn visit_binary_expr(&self, expr: &Expr) -> A;
+    fn visit_grouping_expr(&self, expr: &Expr) -> A;
+    fn visit_literal_expr(&self, expr: &Expr) -> A;
+    fn visit_unary_expr(&self, expr: &Expr) -> A;
 }
 
-struct AstPrinter {}
+pub struct AstPrinter {}
 
 impl AstPrinter {
-    fn print(expr: Expr) -> String {
-        expr.accept(&self)
+    pub fn print(&self, expr: Expr) -> String {
+        expr.accept(self)
     }
 
-    fn parenthesize(name: String, expr1: Expr, expr2: Option<Expr>) -> String {
-        let mut string = "(" + name + " " + expr1.accept(self);
+    fn parenthesize(&self, name: String, expr1: &Expr, expr2: Option<&Expr>) -> String {
+        let mut string =
+            ("(".to_string() + &name + " ").to_owned() + &expr1.accept(self).to_owned();
 
         match expr2 {
-            Some(expr) => string = string + " " + expr.accept(self),
+            Some(expr) => string = string + " " + &expr.accept(self).to_owned(),
             None => (),
         }
 
@@ -56,19 +63,39 @@ impl AstPrinter {
 }
 
 impl ExprVisitor<String> for AstPrinter {
-    fn visit_binary_expr(&self, expr: Expr::Binary) -> String {
-        self.parenthesize(expr.operator.lexeme, expr.left, Some(expr.right))
+    fn visit_binary_expr(&self, expr: &Expr) -> String {
+        match expr {
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => self.parenthesize(operator.lexeme.to_string(), &*left, Some(&*right)),
+            _ => panic!("Nope!"),
+        }
     }
 
-    fn visit_grouping_expr(&self, expr: Expr::Grouping) -> String {
-        self.parenthesize("group", expr.expression, None)
+    fn visit_grouping_expr(&self, expr: &Expr) -> String {
+        match expr {
+            Expr::Grouping { expression } => {
+                self.parenthesize("group".to_owned(), &*expression, None)
+            }
+            _ => panic!("Nope!"),
+        }
     }
 
-    fn visit_literal_expr(&self, expr: Expr::Literal) -> String {
-        expr.value
+    fn visit_literal_expr(&self, expr: &Expr) -> String {
+        match expr {
+            Expr::Literal { value } => value.to_string(),
+            _ => panic!("Nope!"),
+        }
     }
 
-    fn visit_unary_expr(&self, expr: Expr::Unary) -> String {
-        self.parenthesize(expr.operator.lexeme, expr.right, None)
+    fn visit_unary_expr(&self, expr: &Expr) -> String {
+        match expr {
+            Expr::Unary { operator, right } => {
+                self.parenthesize(operator.lexeme.to_string(), &*right, None)
+            }
+            _ => panic!("Nope!"),
+        }
     }
 }
