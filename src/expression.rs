@@ -48,11 +48,10 @@ impl AstPrinter {
     }
 
     fn parenthesize(&self, name: String, expr1: &Expr, expr2: Option<&Expr>) -> String {
-        let mut string =
-            ("(".to_string() + &name + " ").to_owned() + &expr1.accept(self).to_owned();
+        let mut string = ("(".to_string() + &name + " ").to_owned() + &expr1.accept(self);
 
         match expr2 {
-            Some(expr) => string = string + " " + &expr.accept(self).to_owned(),
+            Some(expr) => string = string + " " + &expr.accept(self),
             None => (),
         }
 
