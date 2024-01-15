@@ -6,6 +6,7 @@ use std::{
 use expression::{AstPrinter, Expr};
 
 mod expression;
+mod parser;
 mod token;
 
 static mut HAD_ERROR: bool = false;
