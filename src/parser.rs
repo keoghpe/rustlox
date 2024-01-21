@@ -3,14 +3,20 @@ use crate::{
     token::{Token, TokenType},
 };
 
-struct Parser<'a> {
+pub(crate) struct Parser<'a> {
     current: i64,
     tokens: &'a Vec<Token>,
 }
 
 impl Parser<'_> {
-    fn new(tokens: &Vec<Token>) -> Self {
+    pub fn new(tokens: &Vec<Token>) -> Self {
         Self { current: 0, tokens }
+    }
+
+    pub fn parse(&self) -> Expr {
+        // try expression
+        self.expression()
+        // if there is an error, catch it and return null
     }
 
     fn expression(&self) -> Expr {
@@ -129,6 +135,7 @@ impl Parser<'_> {
                 expression: Box::new(expr),
             };
         }
+        // TODO ERROR HERE expression expected
         panic!("this shouldn't happen")
     }
 
@@ -160,5 +167,24 @@ impl Parser<'_> {
 
     fn previous(&self) -> Token {
         self.tokens[(self.current - 1) as usize]
+    }
+
+    fn consume(&self, ttype: TokenType, message: String) -> Token {
+        if self.check(ttype) {
+            return self.advance();
+        } else {
+            panic!()
+            // TODO Error handling page 88
+        }
+
+        // throw an error
+    }
+
+    fn advance(&self) -> Token {
+        todo!()
+    }
+
+    fn syncronize(&self) -> Token {
+        todo!()
     }
 }

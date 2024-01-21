@@ -12,44 +12,42 @@ mod token;
 static mut HAD_ERROR: bool = false;
 
 fn main() {
-    // if env::args().len() > 2 {
-    //     println!("Usage: rustlox [script]");
-    // } else if env::args().len() == 2 {
-    //     let path = env::args().nth(1).unwrap();
-    //     run(&fs::read_to_string(path).unwrap());
-    //     if unsafe { HAD_ERROR } {
-    //         return;
-    //     }
-    // } else {
-    //     prompt();
-    // }
+    if env::args().len() > 2 {
+        println!("Usage: rustlox [script]");
+    } else if env::args().len() == 2 {
+        let path = env::args().nth(1).unwrap();
+        run(&fs::read_to_string(path).unwrap());
+        if unsafe { HAD_ERROR } {
+            return;
+        }
+    } else {
+        prompt();
+    }
 
-    let expr = Expr::Binary {
-        left: Box::new(Expr::Unary {
-            operator: token::Token {
-                ttype: token::TokenType::MINUS,
-                lexeme: "-".to_owned(),
-                literal: "".to_owned(),
-                line: 0,
-            },
-            right: Box::new(Expr::Literal {
-                value: "123".to_owned(),
-            }),
-        }),
-        operator: token::Token {
-            ttype: token::TokenType::EOF,
-            lexeme: "*".to_string(),
-            literal: "".to_string(),
-            line: 0,
-        },
-        right: Box::new(Expr::Grouping {
-            expression: Box::new(Expr::Literal {
-                value: "45.67".to_owned(),
-            }),
-        }),
-    };
-
-    println!("{}", AstPrinter {}.print(expr));
+    // let expr = Expr::Binary {
+    //     left: Box::new(Expr::Unary {
+    //         operator: token::Token {
+    //             ttype: token::TokenType::MINUS,
+    //             lexeme: "-".to_owned(),
+    //             literal: "".to_owned(),
+    //             line: 0,
+    //         },
+    //         right: Box::new(Expr::Literal {
+    //             value: "123".to_owned(),
+    //         }),
+    //     }),
+    //     operator: token::Token {
+    //         ttype: token::TokenType::EOF,
+    //         lexeme: "*".to_string(),
+    //         literal: "".to_string(),
+    //         line: 0,
+    //     },
+    //     right: Box::new(Expr::Grouping {
+    //         expression: Box::new(Expr::Literal {
+    //             value: "45.67".to_owned(),
+    //         }),
+    //     }),
+    // };
 }
 
 fn prompt() {
@@ -75,6 +73,11 @@ fn run(source: &str) {
     for token in tokens.into_iter() {
         println!("{}", token);
     }
+
+    let parser = parser::Parser::new(&tokens);
+    let expression = parser.parse();
+
+    println!("{}", AstPrinter {}.print(expression));
 }
 
 fn error(line_number: i32, message: &str) {
