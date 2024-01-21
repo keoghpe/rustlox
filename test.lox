@@ -1,4 +1,6 @@
-{
-    // some comment
-    (random junk) != [other random junk]
-}
+("abc" == (1 + 
+    (
+    2 + 3 - "my string" / 10
+    ) * 1 / 10
+    + !false
+) > 2 < 1)

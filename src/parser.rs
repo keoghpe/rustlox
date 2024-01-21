@@ -1,29 +1,32 @@
+use std::fmt::Display;
+
 use crate::{
     expression::Expr,
     token::{Token, TokenType},
 };
 
+#[derive(Debug)]
 pub(crate) struct Parser<'a> {
     current: i64,
     tokens: &'a Vec<Token>,
 }
 
 impl Parser<'_> {
-    pub fn new(tokens: &Vec<Token>) -> Self {
-        Self { current: 0, tokens }
+    pub fn new<'a>(tokens: &'a Vec<Token>) -> Parser<'a> {
+        Parser { current: 0, tokens }
     }
 
-    pub fn parse(&self) -> Expr {
+    pub fn parse(&mut self) -> Expr {
         // try expression
         self.expression()
         // if there is an error, catch it and return null
     }
 
-    fn expression(&self) -> Expr {
+    fn expression(&mut self) -> Expr {
         self.equality()
     }
 
-    fn equality(&self) -> Expr {
+    fn equality(&mut self) -> Expr {
         let mut expr = self.comparison();
 
         while self.is_match(vec![TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
@@ -39,7 +42,7 @@ impl Parser<'_> {
         expr
     }
 
-    fn comparison(&self) -> Expr {
+    fn comparison(&mut self) -> Expr {
         let mut expr = self.term();
 
         while self.is_match(vec![
@@ -61,7 +64,7 @@ impl Parser<'_> {
         expr
     }
 
-    fn term(&self) -> Expr {
+    fn term(&mut self) -> Expr {
         let mut expr = self.factor();
 
         while self.is_match(vec![TokenType::MINUS, TokenType::PLUS]) {
@@ -78,7 +81,7 @@ impl Parser<'_> {
         expr
     }
 
-    fn factor(&self) -> Expr {
+    fn factor(&mut self) -> Expr {
         let mut expr = self.unary();
 
         while self.is_match(vec![TokenType::SLASH, TokenType::STAR]) {
@@ -94,7 +97,7 @@ impl Parser<'_> {
         expr
     }
 
-    fn unary(&self) -> Expr {
+    fn unary(&mut self) -> Expr {
         if self.is_match(vec![TokenType::BANG, TokenType::MINUS]) {
             let operator = self.previous();
             let right = self.unary();
@@ -107,7 +110,7 @@ impl Parser<'_> {
         self.primary()
     }
 
-    fn primary(&self) -> Expr {
+    fn primary(&mut self) -> Expr {
         if self.is_match(vec![TokenType::FALSE]) {
             return Expr::Literal {
                 value: (&"false").to_string(),
@@ -120,7 +123,7 @@ impl Parser<'_> {
         }
         if self.is_match(vec![TokenType::NIL]) {
             return Expr::Literal {
-                value: (&"null").to_string(),
+                value: (&"nil").to_string(),
             };
         }
         if self.is_match(vec![TokenType::NUMBER, TokenType::STRING]) {
@@ -130,18 +133,21 @@ impl Parser<'_> {
         }
         if self.is_match(vec![TokenType::LEFT_PAREN]) {
             let expr = self.expression();
-            self.consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
+            self.consume(
+                TokenType::RIGHT_PAREN,
+                "Expect ')' after expression.".to_string(),
+            );
             return Expr::Grouping {
                 expression: Box::new(expr),
             };
         }
         // TODO ERROR HERE expression expected
-        panic!("this shouldn't happen")
+        panic!("this shouldn't happen {:?}", self)
     }
 
-    fn is_match(&self, ttypes: Vec<TokenType>) -> bool {
+    fn is_match(&mut self, ttypes: Vec<TokenType>) -> bool {
         for ttype in ttypes.iter() {
-            if self.check(ttype) {
+            if self.check(ttype.clone()) {
                 self.advance();
                 return true;
             }
@@ -154,7 +160,7 @@ impl Parser<'_> {
             return false;
         }
 
-        matches!(self.peek().ttype, ttype)
+        self.peek().ttype == ttype
     }
 
     fn is_at_end(&self) -> bool {
@@ -162,14 +168,14 @@ impl Parser<'_> {
     }
 
     fn peek(&self) -> Token {
-        self.tokens[self.current as usize]
+        self.tokens[self.current as usize].clone()
     }
 
     fn previous(&self) -> Token {
-        self.tokens[(self.current - 1) as usize]
+        self.tokens[(self.current - 1) as usize].clone()
     }
 
-    fn consume(&self, ttype: TokenType, message: String) -> Token {
+    fn consume(&mut self, ttype: TokenType, message: String) -> Token {
         if self.check(ttype) {
             return self.advance();
         } else {
@@ -180,8 +186,12 @@ impl Parser<'_> {
         // throw an error
     }
 
-    fn advance(&self) -> Token {
-        todo!()
+    fn advance(&mut self) -> Token {
+        if !self.is_at_end() {
+            self.current += 1;
+        }
+
+        self.previous()
     }
 
     fn syncronize(&self) -> Token {

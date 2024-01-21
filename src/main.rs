@@ -70,11 +70,11 @@ fn run(source: &str) {
     let mut scanner = token::Scanner::new(source);
     let tokens = scanner.scan_tokens();
 
-    for token in tokens.into_iter() {
+    for token in tokens.clone().into_iter() {
         println!("{}", token);
     }
 
-    let parser = parser::Parser::new(&tokens);
+    let mut parser = parser::Parser::new(&tokens);
     let expression = parser.parse();
 
     println!("{}", AstPrinter {}.print(expression));

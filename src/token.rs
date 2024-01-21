@@ -2,7 +2,7 @@ use core::fmt;
 use lazy_static::lazy_static;
 use std::{borrow::Borrow, collections::HashMap};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TokenType {
     // Single-character tokens.
     LEFT_PAREN,
@@ -120,7 +120,7 @@ impl fmt::Display for TokenType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Token {
     pub(crate) ttype: TokenType,
     pub(crate) lexeme: String,
