@@ -279,8 +279,26 @@ impl Parser<'_> {
         self.previous()
     }
 
-    fn syncronize(&self) -> Token {
-        todo!()
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            if self.previous().ttype == TokenType::SEMICOLON {
+                return;
+            }
+
+            match self.peek().ttype {
+                TokenType::CLASS => return,
+                TokenType::FUN => return,
+                TokenType::VAR => return,
+                TokenType::FOR => return,
+                TokenType::IF => return,
+                TokenType::WHILE => return,
+                TokenType::PRINT => return,
+                TokenType::RETURN => return,
+                _ => self.advance(),
+            };
+        }
     }
 
     fn error(&self, token: Token, message: String) -> ParseError {
