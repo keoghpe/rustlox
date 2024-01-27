@@ -121,25 +121,42 @@ impl fmt::Display for TokenType {
 }
 
 #[derive(Clone, Debug)]
+pub enum Value {
+    Boolean { value: bool },
+    Double { value: f64 },
+    String { value: String },
+    Nil,
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Boolean { value } => f.write_str(&value.to_string()),
+            Value::Double { value } => f.write_str(&value.to_string()),
+            Value::String { value } => f.write_str(&value.to_string()),
+            Value::Nil => f.write_str(&"Nil".to_string()),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Token {
     pub(crate) ttype: TokenType,
     pub(crate) lexeme: String,
-    // This should reference an object / be a generic
-    pub(crate) literal: String,
+    pub(crate) literal: Option<Value>,
     pub(crate) line: i64,
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(
-            &(self.ttype.to_string()
-                + " "
-                + &self.lexeme
-                + " "
-                + &self.literal
-                + " "
-                + &self.line.to_string()),
-        )
+        let mut debug_string = self.ttype.to_string() + " " + &self.lexeme;
+
+        match &self.literal {
+            Some(literal_value) => debug_string = debug_string + " " + &literal_value.to_string(),
+            None => (),
+        }
+
+        f.write_str(&(debug_string + " " + &self.line.to_string()))
     }
 }
 
@@ -176,7 +193,7 @@ impl<'a> Scanner<'a> {
         self.tokens.push(Token {
             ttype: TokenType::EOF,
             lexeme: "".to_string(),
-            literal: "".to_string(),
+            literal: None,
             line: self.line,
         });
 
@@ -278,7 +295,12 @@ impl<'a> Scanner<'a> {
 
         let value = self.current_string();
 
-        self.add_token(TokenType::STRING, &value[1..value.len() - 1])
+        self.add_token(
+            TokenType::STRING,
+            Some(Value::String {
+                value: value[1..value.len() - 1].to_string(),
+            }),
+        )
     }
 
     fn number(&mut self) {
@@ -302,8 +324,12 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        // TODO Convert literal to a Double
-        self.add_token(TokenType::NUMBER, &self.current_string())
+        self.add_token(
+            TokenType::NUMBER,
+            Some(Value::Double {
+                value: self.current_string().parse().unwrap(),
+            }),
+        )
     }
 
     fn identifier(&mut self) {
@@ -325,13 +351,13 @@ impl<'a> Scanner<'a> {
     }
 
     fn add_token_no_literal(&mut self, ttype: TokenType) {
-        self.add_token(ttype, "")
+        self.add_token(ttype, None)
     }
 
-    fn add_token(&mut self, ttype: TokenType, literal: &str) {
+    fn add_token(&mut self, ttype: TokenType, literal: Option<Value>) {
         self.tokens.push(Token {
             ttype: ttype,
-            literal: literal.to_string(),
+            literal: literal,
             lexeme: self.current_string(),
             line: self.line,
         });

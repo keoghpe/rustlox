@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     expression::Expr,
-    token::{Token, TokenType},
+    token::{Token, TokenType, Value},
 };
 
 #[derive(Debug)]
@@ -40,9 +40,7 @@ impl Parser<'_> {
             }
             Err(err) => {
                 err.report();
-                return Expr::Literal {
-                    value: "null".to_string(),
-                };
+                return Expr::Literal { value: Value::Nil };
             }
         }
     }
@@ -185,22 +183,20 @@ impl Parser<'_> {
     fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.is_match(vec![TokenType::FALSE]) {
             return Ok(Expr::Literal {
-                value: (&"false").to_string(),
+                value: Value::Boolean { value: false },
             });
         }
         if self.is_match(vec![TokenType::TRUE]) {
             return Ok(Expr::Literal {
-                value: (&"true").to_string(),
+                value: Value::Boolean { value: true },
             });
         }
         if self.is_match(vec![TokenType::NIL]) {
-            return Ok(Expr::Literal {
-                value: (&"nil").to_string(),
-            });
+            return Ok(Expr::Literal { value: Value::Nil });
         }
         if self.is_match(vec![TokenType::NUMBER, TokenType::STRING]) {
             return Ok(Expr::Literal {
-                value: self.previous().literal,
+                value: self.previous().literal.unwrap(),
             });
         }
         if self.is_match(vec![TokenType::LEFT_PAREN]) {

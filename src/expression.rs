@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::token::{Token, Value};
 
 pub enum Expr {
     Binary {
@@ -10,7 +10,7 @@ pub enum Expr {
         expression: Box<Expr>,
     },
     Literal {
-        value: String,
+        value: Value,
     },
     Unary {
         operator: Token,
