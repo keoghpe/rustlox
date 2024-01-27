@@ -19,7 +19,7 @@ pub enum Expr {
 }
 
 impl Expr {
-    fn accept<A>(&self, visitor: &dyn ExprVisitor<A>) -> A {
+    pub fn accept<A>(&self, visitor: &dyn ExprVisitor<A>) -> A {
         match self {
             Expr::Binary {
                 left,
@@ -33,7 +33,7 @@ impl Expr {
     }
 }
 
-trait ExprVisitor<A> {
+pub trait ExprVisitor<A> {
     fn visit_binary_expr(&self, expr: &Expr) -> A;
     fn visit_grouping_expr(&self, expr: &Expr) -> A;
     fn visit_literal_expr(&self, expr: &Expr) -> A;
@@ -43,7 +43,7 @@ trait ExprVisitor<A> {
 pub struct AstPrinter {}
 
 impl AstPrinter {
-    pub fn print(&self, expr: Expr) -> String {
+    pub fn print(&self, expr: &Expr) -> String {
         expr.accept(self)
     }
 

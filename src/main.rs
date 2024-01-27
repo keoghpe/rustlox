@@ -5,7 +5,10 @@ use std::{
 
 use expression::{AstPrinter, Expr};
 
+use crate::interpreter::Interpreter;
+
 mod expression;
+mod interpreter;
 mod parser;
 mod token;
 
@@ -77,7 +80,8 @@ fn run(source: &str) {
     let mut parser = parser::Parser::new(&tokens);
     let expression = parser.parse();
 
-    println!("{}", AstPrinter {}.print(expression));
+    println!("{}", AstPrinter {}.print(&expression));
+    println!("{}", Interpreter {}.interpret(&expression));
 }
 
 fn error(line_number: i32, message: &str) {

@@ -120,7 +120,7 @@ impl fmt::Display for TokenType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Value {
     Boolean { value: bool },
     Double { value: f64 },
