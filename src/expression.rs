@@ -22,13 +22,16 @@ impl Expr {
     pub fn accept<A>(&self, visitor: &dyn ExprVisitor<A>) -> A {
         match self {
             Expr::Binary {
-                left,
-                operator,
-                right,
+                left: _,
+                operator: _,
+                right: _,
             } => visitor.visit_binary_expr(self),
-            Expr::Grouping { expression } => visitor.visit_grouping_expr(self),
-            Expr::Literal { value } => visitor.visit_literal_expr(self),
-            Expr::Unary { operator, right } => visitor.visit_unary_expr(self),
+            Expr::Grouping { expression: _ } => visitor.visit_grouping_expr(self),
+            Expr::Literal { value: _ } => visitor.visit_literal_expr(self),
+            Expr::Unary {
+                operator: _,
+                right: _,
+            } => visitor.visit_unary_expr(self),
         }
     }
 }
@@ -43,9 +46,9 @@ pub trait ExprVisitor<A> {
 pub struct AstPrinter {}
 
 impl AstPrinter {
-    pub fn print(&self, expr: &Expr) -> String {
-        expr.accept(self)
-    }
+    // pub fn print(&self, expr: &Expr) -> String {
+    //     expr.accept(self)
+    // }
 
     fn parenthesize(&self, name: String, expr1: &Expr, expr2: Option<&Expr>) -> String {
         let mut string = ("(".to_string() + &name + " ").to_owned() + &expr1.accept(self);

@@ -275,10 +275,10 @@ impl<'a> Scanner<'a> {
 
     fn string(&mut self) {
         loop {
-            if (self.peek() == '"' || self.is_at_end()) {
+            if self.peek() == '"' || self.is_at_end() {
                 break;
             } else {
-                if (self.peek() == '\n') {
+                if self.peek() == '\n' {
                     self.line += 1;
                 }
                 self.advance();

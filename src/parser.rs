@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use crate::{
     expression::Expr,
     token::{Token, TokenType, Value},
@@ -66,13 +64,13 @@ impl Parser<'_> {
                                 right: Box::new(right),
                             };
                         }
-                        Err(parseError) => return Err(parseError),
+                        Err(parse_error) => return Err(parse_error),
                     }
                 }
                 Ok(expr)
             }
 
-            Err(parseError) => return Err(parseError),
+            Err(parse_error) => return Err(parse_error),
         }
     }
 
@@ -98,13 +96,13 @@ impl Parser<'_> {
                                 right: Box::new(right),
                             };
                         }
-                        Err(parseError) => return Err(parseError),
+                        Err(parse_error) => return Err(parse_error),
                     }
                 }
 
                 Ok(expr)
             }
-            Err(parseError) => return Err(parseError),
+            Err(parse_error) => return Err(parse_error),
         }
     }
 
@@ -131,7 +129,7 @@ impl Parser<'_> {
 
                 Ok(expr)
             }
-            Err(parseError) => Err(parseError),
+            Err(parse_error) => Err(parse_error),
         }
     }
 
@@ -151,13 +149,13 @@ impl Parser<'_> {
                                 right: Box::new(right),
                             };
                         }
-                        Err(parseError) => return Err(parseError),
+                        Err(parse_error) => return Err(parse_error),
                     }
                 }
 
                 Ok(expr)
             }
-            Err(parseError) => return Err(parseError),
+            Err(parse_error) => return Err(parse_error),
         }
     }
 
@@ -209,7 +207,7 @@ impl Parser<'_> {
 
             match result {
                 Ok(_) => (),
-                Err(parseError) => return Err(parseError),
+                Err(parse_error) => return Err(parse_error),
             }
 
             match expr_result {
@@ -218,7 +216,7 @@ impl Parser<'_> {
                         expression: Box::new(expr),
                     });
                 }
-                Err(parseError) => return Err(parseError),
+                Err(parse_error) => return Err(parse_error),
             }
         }
         Err(self.current_error("this shouldn't happen".to_string()))
@@ -275,27 +273,27 @@ impl Parser<'_> {
         self.previous()
     }
 
-    fn synchronize(&mut self) {
-        self.advance();
+    // fn synchronize(&mut self) {
+    //     self.advance();
 
-        while !self.is_at_end() {
-            if self.previous().ttype == TokenType::SEMICOLON {
-                return;
-            }
+    //     while !self.is_at_end() {
+    //         if self.previous().ttype == TokenType::SEMICOLON {
+    //             return;
+    //         }
 
-            match self.peek().ttype {
-                TokenType::CLASS => return,
-                TokenType::FUN => return,
-                TokenType::VAR => return,
-                TokenType::FOR => return,
-                TokenType::IF => return,
-                TokenType::WHILE => return,
-                TokenType::PRINT => return,
-                TokenType::RETURN => return,
-                _ => self.advance(),
-            };
-        }
-    }
+    //         match self.peek().ttype {
+    //             TokenType::CLASS => return,
+    //             TokenType::FUN => return,
+    //             TokenType::VAR => return,
+    //             TokenType::FOR => return,
+    //             TokenType::IF => return,
+    //             TokenType::WHILE => return,
+    //             TokenType::PRINT => return,
+    //             TokenType::RETURN => return,
+    //             _ => self.advance(),
+    //         };
+    //     }
+    // }
 
     fn error(&self, token: Token, message: String) -> ParseError {
         if token.ttype == TokenType::EOF {

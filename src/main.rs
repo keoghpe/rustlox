@@ -3,8 +3,6 @@ use std::{
     io::{self, Write},
 };
 
-use expression::{AstPrinter, Expr};
-
 use crate::interpreter::Interpreter;
 
 mod expression;
@@ -73,22 +71,22 @@ fn run(source: &str) {
     let mut scanner = token::Scanner::new(source);
     let tokens = scanner.scan_tokens();
 
-    for token in tokens.clone().into_iter() {
-        println!("{}", token);
-    }
+    // for token in tokens.clone().into_iter() {
+    //     println!("{}", token);
+    // }
 
     let mut parser = parser::Parser::new(&tokens);
     let expression = parser.parse();
 
-    println!("{}", AstPrinter {}.print(&expression));
+    // println!("{}", AstPrinter {}.print(&expression));
     println!("{}", Interpreter {}.interpret(&expression));
 }
 
-fn error(line_number: i32, message: &str) {
-    report(line_number, "", message)
-}
+// fn error(line_number: i32, message: &str) {
+//     report(line_number, "", message)
+// }
 
-fn report(line_number: i32, location: &str, message: &str) {
-    println!("[line {}] Error{}: {}", line_number, location, message);
-    unsafe { HAD_ERROR = true };
-}
+// fn report(line_number: i32, location: &str, message: &str) {
+//     println!("[line {}] Error{}: {}", line_number, location, message);
+//     unsafe { HAD_ERROR = true };
+// }

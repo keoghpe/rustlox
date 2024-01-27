@@ -2,7 +2,7 @@ use core::panic;
 
 use crate::{
     expression::{Expr, ExprVisitor},
-    token::{Token, TokenType, Value},
+    token::{TokenType, Value},
 };
 
 pub struct Interpreter {}
@@ -113,11 +113,11 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                                 error: "Cannot perform this operation on a number".to_string(),
                             }),
                         },
-                        Value::Boolean { value } => Err(RuntimeError {
+                        Value::Boolean { value: _ } => Err(RuntimeError {
                             operator: operator.ttype,
                             error: "Cannot perform this with a number and boolean".to_string(),
                         }),
-                        Value::String { value } => Err(RuntimeError {
+                        Value::String { value: _ } => Err(RuntimeError {
                             operator: operator.ttype,
                             error: "Cannot perform this with a number and a string".to_string(),
                         }),
