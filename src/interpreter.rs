@@ -56,7 +56,7 @@ impl ExprVisitor<Value> for Interpreter {
                 match &operator.ttype {
                     TokenType::EQUAL_EQUAL => return self.is_equal(&left_val, &right_val),
                     TokenType::BANG_EQUAL => return self.is_not_equal(&left_val, &right_val),
-                    _ => (), // do nothing for now
+                    _ => (), // do nothing here, evalue the operator based on the left type below
                 }
 
                 match &left_val {
