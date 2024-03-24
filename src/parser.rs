@@ -1,5 +1,5 @@
 use crate::{
-    expression::Expr,
+    expression::{Expr, Stmt},
     token::{Token, TokenType, Value},
 };
 
@@ -29,17 +29,55 @@ impl Parser<'_> {
         Parser { current: 0, tokens }
     }
 
-    pub fn parse(&mut self) -> Expr {
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements = vec![];
+
+        while !self.is_at_end() {
+            statements.push(self.statement());
+        }
+        // let expr_result = self.expression();
+
+        // match expr_result {
+        //     Ok(expr) => {
+        //         return expr;
+        //     }
+        //     Err(err) => {
+        //         err.report();
+        //         return Expr::Literal { value: Value::Nil };
+        //     }
+        // }
+        statements
+    }
+
+    fn statement(&mut self) -> Stmt {
+        if self.is_match(vec![TokenType::PRINT]) {
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn expression_statement(&mut self) -> Stmt {
         let expr_result = self.expression();
+        self.consume(TokenType::SEMICOLON, "Expect ';' after value.".to_owned());
 
         match expr_result {
-            Ok(expr) => {
-                return expr;
-            }
-            Err(err) => {
-                err.report();
-                return Expr::Literal { value: Value::Nil };
-            }
+            Ok(expr) => Stmt::Expression {
+                expr: Box::new(expr),
+            },
+            Err(_) => panic!("Panicked parsing expression statement"),
+        }
+    }
+
+    fn print_statement(&mut self) -> Stmt {
+        let expr_result = self.expression();
+        self.consume(TokenType::SEMICOLON, "Expect ';' after value.".to_owned());
+
+        match expr_result {
+            Ok(expr) => Stmt::Print {
+                expr: Box::new(expr),
+            },
+            Err(_) => panic!("Panicked parsing expression statement"),
         }
     }
 

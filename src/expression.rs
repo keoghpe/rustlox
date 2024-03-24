@@ -35,12 +35,30 @@ impl Expr {
         }
     }
 }
-
 pub trait ExprVisitor<A> {
     fn visit_binary_expr(&self, expr: &Expr) -> A;
     fn visit_grouping_expr(&self, expr: &Expr) -> A;
     fn visit_literal_expr(&self, expr: &Expr) -> A;
     fn visit_unary_expr(&self, expr: &Expr) -> A;
+}
+
+impl Stmt {
+    pub fn accept<A>(&self, visitor: &dyn StmtVisitor<A>) -> A {
+        match self {
+            Stmt::Expression { expr: _ } => visitor.visit_expression_stmt(self),
+            Stmt::Print { expr: _ } => visitor.visit_print_stmt(self),
+        }
+    }
+}
+
+pub trait StmtVisitor<A> {
+    fn visit_expression_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_print_stmt(&self, stmt: &Stmt) -> A;
+}
+
+pub enum Stmt {
+    Expression { expr: Box<Expr> },
+    Print { expr: Box<Expr> },
 }
 
 pub struct AstPrinter {}

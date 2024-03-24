@@ -1,7 +1,7 @@
 use core::panic;
 
 use crate::{
-    expression::{Expr, ExprVisitor},
+    expression::{Expr, ExprVisitor, Stmt, StmtVisitor},
     token::{TokenType, Value},
 };
 
@@ -20,11 +20,19 @@ impl RuntimeError {
 }
 
 impl Interpreter {
-    pub fn interpret(&self, expr: &Expr) -> String {
-        match self.evaluate(expr) {
-            Ok(value) => value.to_string(),
-            Err(runtime_error) => runtime_error.to_string(),
+    pub fn interpret(&self, statements: &Vec<Stmt>) {
+        for statement in statements.into_iter() {
+            self.execute(statement)
+            // TODO Handle Errors
         }
+        // match self.evaluate(expr) {
+        //     Ok(value) => value.to_string(),
+        //     Err(runtime_error) => runtime_error.to_string(),
+        // }
+    }
+
+    fn execute(&self, stmt: &Stmt) {
+        stmt.accept(self)
     }
 
     pub fn evaluate(&self, expr: &Expr) -> Result<Value, RuntimeError> {
@@ -180,6 +188,35 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                     }),
                     _ => panic!("Nope!"),
                 }
+            }
+            _ => panic!("Nope!"),
+        }
+    }
+}
+
+impl StmtVisitor<()> for Interpreter {
+    fn visit_expression_stmt(&self, stmt: &crate::expression::Stmt) {
+        match stmt {
+            Stmt::Expression { expr } => {
+                // TODO statements should raise errors
+                self.evaluate(expr);
+            }
+            _ => panic!("Nope!"),
+        }
+    }
+
+    fn visit_print_stmt(&self, stmt: &crate::expression::Stmt) {
+        match stmt {
+            Stmt::Print { expr } => {
+                match self.evaluate(expr) {
+                    Ok(value) => {
+                        println!("{}", value)
+                    }
+                    Err(_) => {
+                        panic!("Nope!")
+                    }
+                }
+                // TODO statements should raise errors
             }
             _ => panic!("Nope!"),
         }

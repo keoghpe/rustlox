@@ -76,10 +76,10 @@ fn run(source: &str) {
     // }
 
     let mut parser = parser::Parser::new(&tokens);
-    let expression = parser.parse();
+    let statements = parser.parse();
 
     // println!("{}", AstPrinter {}.print(&expression));
-    println!("{}", Interpreter {}.interpret(&expression));
+    Interpreter {}.interpret(&statements);
 }
 
 // fn error(line_number: i32, message: &str) {
