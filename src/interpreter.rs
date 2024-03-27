@@ -10,7 +10,7 @@ pub struct Interpreter {
     environment: Environment,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RuntimeError {
     // TODO Replace operator with token so we can print the line number in the error
     operator: TokenType,
@@ -18,6 +18,10 @@ pub struct RuntimeError {
 }
 
 impl RuntimeError {
+    pub fn new(operator: TokenType, error: String) -> Self {
+        Self { operator, error }
+    }
+
     fn to_string(&self) -> String {
         format!("Error: {} ({})", self.error, self.operator)
     }
