@@ -2,6 +2,7 @@ use core::fmt;
 use lazy_static::lazy_static;
 use std::{borrow::Borrow, collections::HashMap};
 
+#[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TokenType {
     // Single-character tokens.

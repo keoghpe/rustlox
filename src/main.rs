@@ -5,6 +5,7 @@ use std::{
 
 use crate::interpreter::Interpreter;
 
+mod environment;
 mod expression;
 mod interpreter;
 mod parser;
@@ -79,7 +80,7 @@ fn run(source: &str) {
     let statements = parser.parse();
 
     // println!("{}", AstPrinter {}.print(&expression));
-    Interpreter {}.interpret(&statements);
+    Interpreter::new().interpret(&statements);
 }
 
 // fn error(line_number: i32, message: &str) {

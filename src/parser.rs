@@ -33,7 +33,7 @@ impl Parser<'_> {
         let mut statements = vec![];
 
         while !self.is_at_end() {
-            statements.push(self.statement());
+            statements.push(self.declaration());
         }
         // let expr_result = self.expression();
 
@@ -47,6 +47,41 @@ impl Parser<'_> {
         //     }
         // }
         statements
+    }
+
+    fn declaration(&mut self) -> Stmt {
+        if self.is_match(vec![TokenType::VAR]) {
+            self.var_declaration()
+        } else {
+            self.statement()
+        }
+        // Call syncronize to recover from errors
+    }
+
+    fn var_declaration(&mut self) -> Stmt {
+        let consume_result = self.consume(TokenType::IDENTIFIER, "Expect variable name".to_owned());
+
+        match consume_result {
+            Ok(token) => {
+                if self.is_match(vec![TokenType::EQUAL]) {
+                    let initializer_result = self.expression();
+
+                    match initializer_result {
+                        Ok(initializer) => Stmt::Var {
+                            name: token,
+                            initializer: Some(initializer),
+                        },
+                        Err(_) => panic!("FUCCBARR"),
+                    }
+                } else {
+                    Stmt::Var {
+                        name: token,
+                        initializer: None,
+                    }
+                }
+            }
+            Err(_) => panic!("Oooooooops"),
+        }
     }
 
     fn statement(&mut self) -> Stmt {
@@ -82,7 +117,34 @@ impl Parser<'_> {
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.equality();
+
+        if self.is_match(vec![TokenType::EQUAL]) {
+            let _equals = self.previous();
+            let value = self.assignment();
+
+            match expr {
+                Ok(expression) => match value {
+                    Ok(value_expr) => match expression {
+                        Expr::Variable { name } => {
+                            return Ok(Expr::Assign {
+                                name: name,
+                                value: Box::new(value_expr),
+                            })
+                        }
+                        _ => return Err(self.current_error("Invalid assignment target".to_owned())),
+                    },
+                    Err(error) => return Err(error),
+                },
+                Err(error) => return Err(error),
+            }
+        }
+
+        expr
     }
 
     fn equality(&mut self) -> Result<Expr, ParseError> {
@@ -233,6 +295,11 @@ impl Parser<'_> {
         if self.is_match(vec![TokenType::NUMBER, TokenType::STRING]) {
             return Ok(Expr::Literal {
                 value: self.previous().literal.unwrap(),
+            });
+        }
+        if self.is_match(vec![TokenType::IDENTIFIER]) {
+            return Ok(Expr::Variable {
+                name: self.previous(),
             });
         }
         if self.is_match(vec![TokenType::LEFT_PAREN]) {

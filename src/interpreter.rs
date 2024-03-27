@@ -1,11 +1,14 @@
 use core::panic;
 
 use crate::{
+    environment::Environment,
     expression::{Expr, ExprVisitor, Stmt, StmtVisitor},
     token::{TokenType, Value},
 };
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    environment: Environment,
+}
 
 pub struct RuntimeError {
     // TODO Replace operator with token so we can print the line number in the error
@@ -20,6 +23,12 @@ impl RuntimeError {
 }
 
 impl Interpreter {
+    pub fn new() -> Interpreter {
+        Interpreter {
+            environment: Environment::new(),
+        }
+    }
+
     pub fn interpret(&self, statements: &Vec<Stmt>) {
         for statement in statements.into_iter() {
             self.execute(statement)
@@ -192,6 +201,32 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
             _ => panic!("Nope!"),
         }
     }
+
+    fn visit_variable_expr(&self, expr: &Expr) -> Result<Value, RuntimeError> {
+        match expr {
+            Expr::Variable { name } => self.environment.get(name.clone()),
+            _ => panic!("Nope!"),
+        }
+    }
+
+    fn visit_assign_expr(&self, expr: &Expr) -> Result<Value, RuntimeError> {
+        match expr {
+            Expr::Assign { name, value } => {
+                let value = self.evaluate(value);
+
+                match value {
+                    Ok(expression_value) => {
+                        self.environment
+                            .assign(name.lexeme.to_string(), expression_value);
+
+                        Ok(expression_value.clone())
+                    }
+                    Err(err) => Err(err),
+                }
+            }
+            _ => panic!("Nope!"),
+        }
+    }
 }
 
 impl StmtVisitor<()> for Interpreter {
@@ -217,6 +252,29 @@ impl StmtVisitor<()> for Interpreter {
                     }
                 }
                 // TODO statements should raise errors
+            }
+            _ => panic!("Nope!"),
+        }
+    }
+
+    fn visit_variable_stmt(&self, stmt: &Stmt) -> () {
+        match stmt {
+            Stmt::Var { name, initializer } => {
+                // TODO statements should raise errors
+                // self.evaluate(expr);
+                match initializer {
+                    Some(initializer_expression) => match self.evaluate(initializer_expression) {
+                        Ok(value) => {
+                            self.environment.define(name.lexeme.clone(), value);
+                        }
+                        Err(_) => {
+                            panic!("Nope!")
+                        }
+                    },
+                    None => {
+                        self.environment.define(name.lexeme.clone(), Value::Nil);
+                    }
+                }
             }
             _ => panic!("Nope!"),
         }

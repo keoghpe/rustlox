@@ -1,6 +1,10 @@
 use crate::token::{Token, Value};
 
 pub enum Expr {
+    Assign {
+        name: Token,
+        value: Box<Expr>,
+    },
     Binary {
         left: Box<Expr>,
         operator: Token,
@@ -16,11 +20,15 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+    Variable {
+        name: Token,
+    },
 }
 
 impl Expr {
     pub fn accept<A>(&self, visitor: &dyn ExprVisitor<A>) -> A {
         match self {
+            Expr::Assign { name: _, value: _ } => visitor.visit_assign_expr(self),
             Expr::Binary {
                 left: _,
                 operator: _,
@@ -32,14 +40,19 @@ impl Expr {
                 operator: _,
                 right: _,
             } => visitor.visit_unary_expr(self),
+            // TODO replace with Macro?
+            Expr::Variable { name: _ } => visitor.visit_variable_expr(self),
         }
     }
 }
 pub trait ExprVisitor<A> {
+    // TODO replace with Macro?
+    fn visit_assign_expr(&self, expr: &Expr) -> A;
     fn visit_binary_expr(&self, expr: &Expr) -> A;
     fn visit_grouping_expr(&self, expr: &Expr) -> A;
     fn visit_literal_expr(&self, expr: &Expr) -> A;
     fn visit_unary_expr(&self, expr: &Expr) -> A;
+    fn visit_variable_expr(&self, expr: &Expr) -> A;
 }
 
 impl Stmt {
@@ -47,6 +60,10 @@ impl Stmt {
         match self {
             Stmt::Expression { expr: _ } => visitor.visit_expression_stmt(self),
             Stmt::Print { expr: _ } => visitor.visit_print_stmt(self),
+            Stmt::Var {
+                name: _,
+                initializer: _,
+            } => visitor.visit_print_stmt(self),
         }
     }
 }
@@ -54,11 +71,20 @@ impl Stmt {
 pub trait StmtVisitor<A> {
     fn visit_expression_stmt(&self, stmt: &Stmt) -> A;
     fn visit_print_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_variable_stmt(&self, stmt: &Stmt) -> A;
 }
 
 pub enum Stmt {
-    Expression { expr: Box<Expr> },
-    Print { expr: Box<Expr> },
+    Expression {
+        expr: Box<Expr>,
+    },
+    Print {
+        expr: Box<Expr>,
+    },
+    Var {
+        name: Token,
+        initializer: Option<Expr>,
+    },
 }
 
 pub struct AstPrinter {}
@@ -117,5 +143,18 @@ impl ExprVisitor<String> for AstPrinter {
             }
             _ => panic!("Nope!"),
         }
+    }
+
+    fn visit_variable_expr(&self, expr: &Expr) -> String {
+        match expr {
+            Expr::Variable { name: _ } => {
+                todo!()
+            }
+            _ => panic!("Nope!"),
+        }
+    }
+
+    fn visit_assign_expr(&self, _expr: &Expr) -> String {
+        todo!()
     }
 }
