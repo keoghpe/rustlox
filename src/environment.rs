@@ -16,17 +16,17 @@ impl Environment {
         }
     }
 
-    pub fn define(&self, name: &Token, value: Value) {
+    pub fn define(&self, name: &Token, value: &Value) {
         let mut values_changer = self.values.lock().unwrap();
-        values_changer.insert(name.lexeme.to_string(), value);
+        values_changer.insert(name.lexeme.to_string(), value.clone());
     }
 
-    pub fn assign(&self, name: &Token, value: Value) -> Result<(), RuntimeError> {
+    pub fn assign(&self, name: &Token, value: &Value) -> Result<Value, RuntimeError> {
         let mut values_changer = self.values.lock().unwrap();
 
         if values_changer.contains_key(&name.lexeme) {
-            values_changer.insert(name.lexeme.to_string(), value);
-            Ok(())
+            values_changer.insert(name.lexeme.to_string(), value.clone());
+            Ok(value.clone())
         } else {
             Err(RuntimeError::new(
                 name.ttype,
@@ -69,7 +69,7 @@ mod tests {
 
         let mut environment = Environment::new();
 
-        environment.define(&token, Value::Double { value: 10.0 });
+        environment.define(&token, &Value::Double { value: 10.0 });
 
         assert_eq!(Ok(Value::Double { value: 10.0 }), environment.get(token));
     }
@@ -85,8 +85,8 @@ mod tests {
 
         let mut environment = Environment::new();
 
-        environment.define(&token, Value::Double { value: 10.0 });
-        environment.assign(&token, Value::Double { value: 20.0 });
+        environment.define(&token, &Value::Double { value: 10.0 });
+        environment.assign(&token, &Value::Double { value: 20.0 });
 
         assert_eq!(Ok(Value::Double { value: 20.0 }), environment.get(token));
     }
@@ -127,7 +127,7 @@ mod tests {
                 TokenType::IDENTIFIER,
                 "Undefined variable 'foo'".to_string()
             )),
-            environment.assign(&token, Value::Double { value: 20.0 })
+            environment.assign(&token, &Value::Double { value: 20.0 })
         );
     }
 }

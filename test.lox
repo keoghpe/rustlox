@@ -1,3 +1,6 @@
-print "one";
-print true;
-print 2 + 1;
+let one = "one";
+print one;
+// one = "two";
+// print one;
+//print true;
+//print 2 + 1;

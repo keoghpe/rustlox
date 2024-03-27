@@ -39,10 +39,6 @@ impl Interpreter {
             self.execute(statement)
             // TODO Handle Errors
         }
-        // match self.evaluate(expr) {
-        //     Ok(value) => value.to_string(),
-        //     Err(runtime_error) => runtime_error.to_string(),
-        // }
     }
 
     fn execute(&self, stmt: &Stmt) {
@@ -220,13 +216,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                 let value = self.evaluate(value);
 
                 match value {
-                    Ok(expression_value) => {
-                        // self.environment
-                        //     .assign(name.lexeme.to_string(), expression_value);
-
-                        // Ok(expression_value.clone())
-                        panic!("TODO")
-                    }
+                    Ok(expression_value) => self.environment.assign(name, &expression_value),
                     Err(err) => Err(err),
                 }
             }
@@ -253,8 +243,9 @@ impl StmtVisitor<()> for Interpreter {
                     Ok(value) => {
                         println!("{}", value)
                     }
-                    Err(_) => {
-                        panic!("Nope!")
+                    Err(err) => {
+                        println!("{}", err.to_string());
+                        panic!("Nope!");
                     }
                 }
                 // TODO statements should raise errors
@@ -267,18 +258,18 @@ impl StmtVisitor<()> for Interpreter {
         match stmt {
             Stmt::Var { name, initializer } => {
                 // TODO statements should raise errors
-                // self.evaluate(expr);
+
                 match initializer {
                     Some(initializer_expression) => match self.evaluate(initializer_expression) {
                         Ok(value) => {
-                            // self.environment.define(name.lexeme.clone(), value);
+                            self.environment.define(&name, &value);
                         }
                         Err(_) => {
                             panic!("Nope!")
                         }
                     },
                     None => {
-                        // self.environment.define(name.lexeme.clone(), Value::Nil);
+                        self.environment.define(&name, &Value::Nil);
                     }
                 }
             }
