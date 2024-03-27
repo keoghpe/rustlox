@@ -17,11 +17,14 @@ impl Environment {
     }
 
     pub fn define(&self, name: &Token, value: &Value) {
+        // println!("Defining variable: {}", name.lexeme);
+
         let mut values_changer = self.values.lock().unwrap();
         values_changer.insert(name.lexeme.to_string(), value.clone());
     }
 
     pub fn assign(&self, name: &Token, value: &Value) -> Result<Value, RuntimeError> {
+        // println!("Assigning variable: {}", name.lexeme);
         let mut values_changer = self.values.lock().unwrap();
 
         if values_changer.contains_key(&name.lexeme) {
@@ -36,6 +39,7 @@ impl Environment {
     }
 
     pub fn get(&self, name: Token) -> Result<Value, RuntimeError> {
+        // println!("Getting variable: {}", name.lexeme);
         let mut values_changer = self.values.lock().unwrap();
         // TODO We should not clone here
         if values_changer.contains_key(&name.lexeme) {

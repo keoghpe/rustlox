@@ -1,5 +1,6 @@
 use crate::token::{Token, Value};
 
+#[derive(Debug)]
 pub enum Expr {
     Assign {
         name: Token,
@@ -63,7 +64,7 @@ impl Stmt {
             Stmt::Var {
                 name: _,
                 initializer: _,
-            } => visitor.visit_print_stmt(self),
+            } => visitor.visit_variable_stmt(self),
         }
     }
 }
@@ -74,6 +75,7 @@ pub trait StmtVisitor<A> {
     fn visit_variable_stmt(&self, stmt: &Stmt) -> A;
 }
 
+#[derive(Debug)]
 pub enum Stmt {
     Expression {
         expr: Box<Expr>,

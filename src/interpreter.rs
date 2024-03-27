@@ -227,6 +227,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
 
 impl StmtVisitor<()> for Interpreter {
     fn visit_expression_stmt(&self, stmt: &crate::expression::Stmt) {
+        // println!("Visiting expression statement");
         match stmt {
             Stmt::Expression { expr } => {
                 // TODO statements should raise errors
@@ -237,6 +238,7 @@ impl StmtVisitor<()> for Interpreter {
     }
 
     fn visit_print_stmt(&self, stmt: &crate::expression::Stmt) {
+        // println!("Visiting print statement");
         match stmt {
             Stmt::Print { expr } => {
                 match self.evaluate(expr) {

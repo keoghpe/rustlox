@@ -33,7 +33,9 @@ impl Parser<'_> {
         let mut statements = vec![];
 
         while !self.is_at_end() {
-            statements.push(self.declaration());
+            let declaration = self.declaration();
+            // println!("{:?}", declaration);
+            statements.push(declaration);
         }
         // let expr_result = self.expression();
 
@@ -67,13 +69,37 @@ impl Parser<'_> {
                     let initializer_result = self.expression();
 
                     match initializer_result {
-                        Ok(initializer) => Stmt::Var {
-                            name: token,
-                            initializer: Some(initializer),
-                        },
+                        Ok(initializer) => {
+                            let semicolon_result = self.consume(
+                                TokenType::SEMICOLON,
+                                "Expect ';' after value.".to_owned(),
+                            );
+
+                            match semicolon_result {
+                                Ok(_) => (),
+                                Err(err) => {
+                                    panic!("Panicked parsing expression statement {}", err.message)
+                                }
+                            }
+
+                            Stmt::Var {
+                                name: token,
+                                initializer: Some(initializer),
+                            }
+                        }
                         Err(_) => panic!("FUCCBARR"),
                     }
                 } else {
+                    let semicolon_result =
+                        self.consume(TokenType::SEMICOLON, "Expect ';' after value.".to_owned());
+
+                    match semicolon_result {
+                        Ok(_) => (),
+                        Err(err) => {
+                            panic!("Panicked parsing expression statement {}", err.message)
+                        }
+                    }
+
                     Stmt::Var {
                         name: token,
                         initializer: None,
@@ -94,19 +120,31 @@ impl Parser<'_> {
 
     fn expression_statement(&mut self) -> Stmt {
         let expr_result = self.expression();
-        self.consume(TokenType::SEMICOLON, "Expect ';' after value.".to_owned());
+        let semicolon_result =
+            self.consume(TokenType::SEMICOLON, "Expect ';' after value.".to_owned());
+
+        match semicolon_result {
+            Ok(_) => (),
+            Err(err) => panic!("Panicked parsing expression statement {}", err.message),
+        }
 
         match expr_result {
             Ok(expr) => Stmt::Expression {
                 expr: Box::new(expr),
             },
-            Err(_) => panic!("Panicked parsing expression statement"),
+            Err(err) => panic!("Panicked parsing expression statement {}", err.message),
         }
     }
 
     fn print_statement(&mut self) -> Stmt {
         let expr_result = self.expression();
-        self.consume(TokenType::SEMICOLON, "Expect ';' after value.".to_owned());
+        let semicolon_result =
+            self.consume(TokenType::SEMICOLON, "Expect ';' after value.".to_owned());
+
+        match semicolon_result {
+            Ok(_) => (),
+            Err(err) => panic!("Panicked parsing expression statement {}", err.message),
+        }
 
         match expr_result {
             Ok(expr) => Stmt::Print {
@@ -324,7 +362,7 @@ impl Parser<'_> {
                 Err(parse_error) => return Err(parse_error),
             }
         }
-        Err(self.current_error("this shouldn't happen".to_string()))
+        Err(self.current_error(format!("this shouldn't happen {:?}", self.peek())))
     }
 
     fn is_match(&mut self, ttypes: Vec<TokenType>) -> bool {
