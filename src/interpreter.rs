@@ -10,6 +10,7 @@ pub struct Interpreter {
     environment: Environment,
 }
 
+#[derive(Debug)]
 pub struct RuntimeError {
     // TODO Replace operator with token so we can print the line number in the error
     operator: TokenType,
@@ -216,10 +217,11 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
 
                 match value {
                     Ok(expression_value) => {
-                        self.environment
-                            .assign(name.lexeme.to_string(), expression_value);
+                        // self.environment
+                        //     .assign(name.lexeme.to_string(), expression_value);
 
-                        Ok(expression_value.clone())
+                        // Ok(expression_value.clone())
+                        panic!("TODO")
                     }
                     Err(err) => Err(err),
                 }
@@ -265,14 +267,14 @@ impl StmtVisitor<()> for Interpreter {
                 match initializer {
                     Some(initializer_expression) => match self.evaluate(initializer_expression) {
                         Ok(value) => {
-                            self.environment.define(name.lexeme.clone(), value);
+                            // self.environment.define(name.lexeme.clone(), value);
                         }
                         Err(_) => {
                             panic!("Nope!")
                         }
                     },
                     None => {
-                        self.environment.define(name.lexeme.clone(), Value::Nil);
+                        // self.environment.define(name.lexeme.clone(), Value::Nil);
                     }
                 }
             }
