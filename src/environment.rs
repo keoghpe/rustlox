@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Mutex};
 
 use crate::{
     interpreter::RuntimeError,
@@ -6,25 +6,26 @@ use crate::{
 };
 
 pub struct Environment {
-    values: HashMap<String, Value>,
+    values: Mutex<HashMap<String, Value>>,
 }
 
 impl Environment {
     pub fn new() -> Environment {
         Environment {
-            values: HashMap::new(),
+            values: Mutex::new(HashMap::new()),
         }
     }
 
-    pub fn define(&mut self, name: &Token, value: Value) {
-        self.values.insert(name.lexeme.to_string(), value);
+    pub fn define(&self, name: &Token, value: Value) {
+        let mut values_changer = self.values.lock().unwrap();
+        values_changer.insert(name.lexeme.to_string(), value);
     }
 
-    pub fn assign(&mut self, name: &Token, value: Value) -> Result<(), RuntimeError> {
-        // TODO Check if the key exists, if it doesn't, throw a runtime error
-        // TODO Raise a runtime error "Undefined variable ..."
-        if self.values.contains_key(&name.lexeme) {
-            self.values.insert(name.lexeme.to_string(), value);
+    pub fn assign(&self, name: &Token, value: Value) -> Result<(), RuntimeError> {
+        let mut values_changer = self.values.lock().unwrap();
+
+        if values_changer.contains_key(&name.lexeme) {
+            values_changer.insert(name.lexeme.to_string(), value);
             Ok(())
         } else {
             Err(RuntimeError::new(
@@ -35,9 +36,10 @@ impl Environment {
     }
 
     pub fn get(&self, name: Token) -> Result<Value, RuntimeError> {
+        let mut values_changer = self.values.lock().unwrap();
         // TODO We should not clone here
-        if self.values.contains_key(&name.lexeme) {
-            Ok(self.values.get(&name.lexeme).unwrap().clone())
+        if values_changer.contains_key(&name.lexeme) {
+            Ok(values_changer.get(&name.lexeme).unwrap().clone())
         } else {
             Err(RuntimeError::new(
                 name.ttype,
