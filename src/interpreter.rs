@@ -6,8 +6,8 @@ use crate::{
     token::{TokenType, Value},
 };
 
-pub struct Interpreter {
-    environment: Environment,
+pub struct Interpreter<'a> {
+    environment: Environment<'a>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -27,10 +27,10 @@ impl RuntimeError {
     }
 }
 
-impl Interpreter {
-    pub fn new() -> Interpreter {
+impl<'a> Interpreter<'a> {
+    pub fn new() -> Interpreter<'a> {
         Interpreter {
-            environment: Environment::new(),
+            environment: Environment::new(None),
         }
     }
 
@@ -75,7 +75,7 @@ impl Interpreter {
     }
 }
 
-impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
+impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter<'_> {
     fn visit_binary_expr(&self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Binary {
@@ -225,7 +225,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
     }
 }
 
-impl StmtVisitor<()> for Interpreter {
+impl StmtVisitor<()> for Interpreter<'_> {
     fn visit_expression_stmt(&self, stmt: &crate::expression::Stmt) {
         // println!("Visiting expression statement");
         match stmt {

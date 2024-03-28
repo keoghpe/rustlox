@@ -5,14 +5,16 @@ use crate::{
     token::{Token, Value},
 };
 
-pub struct Environment {
+pub struct Environment<'a> {
     values: Mutex<HashMap<String, Value>>,
+    enclosing: Option<Box<&'a Environment<'a>>>,
 }
 
-impl Environment {
-    pub fn new() -> Environment {
+impl<'a> Environment<'a> {
+    pub fn new(enclosing: Option<Box<&'a Environment>>) -> Environment<'a> {
         Environment {
             values: Mutex::new(HashMap::new()),
+            enclosing,
         }
     }
 
@@ -45,10 +47,13 @@ impl Environment {
         if values_changer.contains_key(&name.lexeme) {
             Ok(values_changer.get(&name.lexeme).unwrap().clone())
         } else {
-            Err(RuntimeError::new(
-                name.ttype,
-                format!("Undefined variable '{}'", name.lexeme),
-            ))
+            match &self.enclosing {
+                Some(enclosing_environment) => enclosing_environment.get(name),
+                None => Err(RuntimeError::new(
+                    name.ttype,
+                    format!("Undefined variable '{}'", name.lexeme),
+                )),
+            }
         }
     }
 }
@@ -71,7 +76,7 @@ mod tests {
             line: 0,
         };
 
-        let mut environment = Environment::new();
+        let mut environment = Environment::new(None);
 
         environment.define(&token, &Value::Double { value: 10.0 });
 
@@ -87,7 +92,7 @@ mod tests {
             line: 0,
         };
 
-        let mut environment = Environment::new();
+        let mut environment = Environment::new(None);
 
         environment.define(&token, &Value::Double { value: 10.0 });
         environment.assign(&token, &Value::Double { value: 20.0 });
@@ -104,7 +109,7 @@ mod tests {
             line: 0,
         };
 
-        let environment = Environment::new();
+        let environment = Environment::new(None);
 
         assert_eq!(
             Err(RuntimeError::new(
@@ -124,7 +129,7 @@ mod tests {
             line: 0,
         };
 
-        let mut environment = Environment::new();
+        let mut environment = Environment::new(None);
 
         assert_eq!(
             Err(RuntimeError::new(
@@ -132,6 +137,74 @@ mod tests {
                 "Undefined variable 'foo'".to_string()
             )),
             environment.assign(&token, &Value::Double { value: 20.0 })
+        );
+    }
+
+    #[test]
+    fn it_delegates_get_to_the_enclosing_environment_if_not_found() {
+        let foo_token = Token {
+            ttype: TokenType::IDENTIFIER,
+            lexeme: "foo".to_string(),
+            literal: None,
+            line: 0,
+        };
+
+        let bar_token = Token {
+            ttype: TokenType::IDENTIFIER,
+            lexeme: "bar".to_string(),
+            literal: None,
+            line: 0,
+        };
+
+        let parent_environment = Environment::new(None);
+        parent_environment.define(&foo_token, &Value::Double { value: 10.0 });
+
+        let environment = Environment::new(Some(Box::new(&parent_environment)));
+        environment.define(&bar_token, &Value::Double { value: 20.0 });
+
+        assert_eq!(
+            Ok(Value::Double { value: 20.0 }),
+            environment.get(bar_token)
+        );
+
+        assert_eq!(
+            Ok(Value::Double { value: 10.0 }),
+            environment.get(foo_token)
+        );
+    }
+
+    #[test]
+    fn it_returns_an_error_if_not_found_in_parent_scope() {
+        let foo_token = Token {
+            ttype: TokenType::IDENTIFIER,
+            lexeme: "foo".to_string(),
+            literal: None,
+            line: 0,
+        };
+
+        let bar_token = Token {
+            ttype: TokenType::IDENTIFIER,
+            lexeme: "bar".to_string(),
+            literal: None,
+            line: 0,
+        };
+
+        let parent_environment = Environment::new(None);
+
+        let environment = Environment::new(Some(Box::new(&parent_environment)));
+        environment.define(&bar_token, &Value::Double { value: 20.0 });
+
+        assert_eq!(
+            Ok(Value::Double { value: 20.0 }),
+            environment.get(bar_token)
+        );
+
+        assert_eq!(
+            Err(RuntimeError::new(
+                TokenType::IDENTIFIER,
+                "Undefined variable 'foo'".to_string()
+            )),
+            environment.get(foo_token)
         );
     }
 }

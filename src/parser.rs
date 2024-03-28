@@ -37,17 +37,7 @@ impl Parser<'_> {
             // println!("{:?}", declaration);
             statements.push(declaration);
         }
-        // let expr_result = self.expression();
 
-        // match expr_result {
-        //     Ok(expr) => {
-        //         return expr;
-        //     }
-        //     Err(err) => {
-        //         err.report();
-        //         return Expr::Literal { value: Value::Nil };
-        //     }
-        // }
         statements
     }
 
