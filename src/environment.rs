@@ -33,10 +33,13 @@ impl<'a> Environment<'a> {
             values_changer.insert(name.lexeme.to_string(), value.clone());
             Ok(value.clone())
         } else {
-            Err(RuntimeError::new(
-                name.ttype,
-                format!("Undefined variable '{}'", name.lexeme),
-            ))
+            match &self.enclosing {
+                Some(enclosing_environment) => enclosing_environment.assign(name, value),
+                None => Err(RuntimeError::new(
+                    name.ttype,
+                    format!("Undefined variable '{}'", name.lexeme),
+                )),
+            }
         }
     }
 
@@ -205,6 +208,36 @@ mod tests {
                 "Undefined variable 'foo'".to_string()
             )),
             environment.get(foo_token)
+        );
+    }
+
+    #[test]
+    fn it_delegates_assign_to_the_enclosing_environment_if_not_found() {
+        let foo_token = Token {
+            ttype: TokenType::IDENTIFIER,
+            lexeme: "foo".to_string(),
+            literal: None,
+            line: 0,
+        };
+
+        let bar_token = Token {
+            ttype: TokenType::IDENTIFIER,
+            lexeme: "bar".to_string(),
+            literal: None,
+            line: 0,
+        };
+
+        let parent_environment = Environment::new(None);
+        parent_environment.define(&foo_token, &Value::Double { value: 10.0 });
+
+        let environment = Environment::new(Some(Box::new(&parent_environment)));
+        environment.define(&bar_token, &Value::Double { value: 20.0 });
+
+        let _ = environment.assign(&foo_token, &Value::Double { value: 20.0 });
+
+        assert_eq!(
+            Ok(Value::Double { value: 20.0 }),
+            parent_environment.get(foo_token)
         );
     }
 }
