@@ -2,6 +2,8 @@ use core::fmt;
 use lazy_static::lazy_static;
 use std::{borrow::Borrow, collections::HashMap};
 
+use crate::interpreter::Interpreter;
+
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TokenType {
@@ -123,10 +125,21 @@ impl fmt::Display for TokenType {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Value {
-    Boolean { value: bool },
-    Double { value: f64 },
-    String { value: String },
+    Boolean {
+        value: bool,
+    },
+    Double {
+        value: f64,
+    },
+    String {
+        value: String,
+    },
     Nil,
+    Callable {
+        arity: i8,
+        call: fn(&Interpreter, &Vec<Value>) -> Value,
+        value: String,
+    },
 }
 
 impl fmt::Display for Value {
@@ -136,6 +149,11 @@ impl fmt::Display for Value {
             Value::Double { value } => f.write_str(&value.to_string()),
             Value::String { value } => f.write_str(&value.to_string()),
             Value::Nil => f.write_str(&"Nil".to_string()),
+            Value::Callable {
+                arity: _,
+                call: _,
+                value,
+            } => f.write_str(&value),
         }
     }
 }

@@ -29,6 +29,11 @@ pub enum Expr {
     Variable {
         name: Token,
     },
+    Call {
+        callee: Box<Expr>,
+        paren: Token,
+        arguments: Vec<Expr>,
+    },
 }
 
 impl Expr {
@@ -53,6 +58,11 @@ impl Expr {
                 operator: _,
                 right: _,
             } => visitor.visit_logical_expr(self),
+            Expr::Call {
+                callee: _,
+                paren: _,
+                arguments: _,
+            } => visitor.visit_call_expr(self),
         }
     }
 }
@@ -66,6 +76,7 @@ pub trait ExprVisitor<A> {
     fn visit_unary_expr(&self, expr: &Expr) -> A;
     fn visit_variable_expr(&self, expr: &Expr) -> A;
     fn visit_logical_expr(&self, expr: &Expr) -> A;
+    fn visit_call_expr(&self, expr: &Expr) -> A;
 }
 
 #[derive(Debug)]
@@ -198,6 +209,10 @@ impl ExprVisitor<String> for AstPrinter {
     }
 
     fn visit_logical_expr(&self, _expr: &Expr) -> String {
+        todo!()
+    }
+
+    fn visit_call_expr(&self, expr: &Expr) -> String {
         todo!()
     }
 }

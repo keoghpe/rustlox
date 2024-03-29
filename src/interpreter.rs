@@ -1,10 +1,13 @@
 use core::panic;
-use std::cell::RefCell;
+use std::{
+    cell::RefCell,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::{
     environment::Environment,
     expression::{Expr, ExprVisitor, Stmt, StmtVisitor},
-    token::{TokenType, Value},
+    token::{Token, TokenType, Value},
 };
 
 pub struct Interpreter {
@@ -30,9 +33,37 @@ impl RuntimeError {
 
 impl Interpreter {
     pub fn new() -> Interpreter {
-        Interpreter {
+        let interpreter = Interpreter {
             environment: RefCell::new(Environment::new(None)),
-        }
+        };
+
+        // Native function definitions
+        interpreter.environment.borrow().define(
+            &Token {
+                ttype: TokenType::IDENTIFIER,
+                lexeme: "clock".to_string(),
+                literal: None,
+                line: 0,
+            },
+            &Value::Callable {
+                arity: 0,
+                call: {
+                    |_interpreter, _arguments| {
+                        let start = SystemTime::now();
+                        let since_the_epoch = start
+                            .duration_since(UNIX_EPOCH)
+                            .expect("Time went backwards");
+
+                        Value::Double {
+                            value: since_the_epoch.as_millis() as f64,
+                        }
+                    }
+                },
+                value: "<native fn>".to_owned(),
+            },
+        );
+
+        interpreter
     }
 
     pub fn interpret(&self, statements: &Vec<Stmt>) {
@@ -56,6 +87,11 @@ impl Interpreter {
             Value::Double { value: _ } => true,
             Value::String { value: _ } => true,
             Value::Nil => false,
+            Value::Callable {
+                arity: _,
+                call: _,
+                value: _,
+            } => true,
         }
     }
 
@@ -161,6 +197,11 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                         Value::Nil => Err(RuntimeError {
                             operator: operator.ttype,
                             error: "Cannot perform this with a number and nil".to_string(),
+                        }),
+                        // TODO - Maybe this is a bug??
+                        Value::Callable { arity, call, value } => Err(RuntimeError {
+                            operator: operator.ttype,
+                            error: "Cannot perform this with a number and callable".to_string(),
                         }),
                     },
                     Value::String { value: left_value } => match operator.ttype {
@@ -269,6 +310,44 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                     self.evaluate(right)
                 }
                 Err(err) => Err(err),
+            }
+        } else {
+            panic!("Nope!")
+        }
+    }
+
+    fn visit_call_expr(&self, expr: &Expr) -> Result<Value, RuntimeError> {
+        if let Expr::Call {
+            callee,
+            paren,
+            arguments,
+        } = expr
+        {
+            let callee_res = self.evaluate(&callee);
+            let mut func_arguments = vec![];
+
+            for arg in arguments.into_iter() {
+                match self.evaluate(arg) {
+                    Ok(arg_value) => func_arguments.push(arg_value),
+                    Err(err) => return Err(err),
+                }
+            }
+
+            if let Ok(Value::Callable { arity, call, value }) = callee_res {
+                if func_arguments.len() == arity as usize {
+                    Ok(call(self, &func_arguments))
+                } else {
+                    return Err(RuntimeError {
+                        operator: paren.ttype,
+                        // TODO Interpolate this error correctly
+                        error: "Expected x arguments, but got y".to_owned(),
+                    });
+                }
+            } else {
+                return Err(RuntimeError {
+                    operator: paren.ttype,
+                    error: "Can only call functions and classes.".to_owned(),
+                });
             }
         } else {
             panic!("Nope!")
