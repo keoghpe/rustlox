@@ -101,6 +101,8 @@ impl Parser<'_> {
     fn statement(&mut self) -> Stmt {
         if self.is_match(vec![TokenType::IF]) {
             self.if_statement()
+        } else if self.is_match(vec![TokenType::WHILE]) {
+            self.while_statement()
         } else if self.is_match(vec![TokenType::PRINT]) {
             self.print_statement()
         } else if self.is_match(vec![TokenType::LEFT_BRACE]) {
@@ -163,6 +165,33 @@ impl Parser<'_> {
                 expr: Box::new(expr),
             },
             Err(_) => panic!("Panicked parsing expression statement"),
+        }
+    }
+
+    fn while_statement(&mut self) -> Stmt {
+        match self.consume(
+            TokenType::LEFT_PAREN,
+            "Expect '(' after 'while'.".to_owned(),
+        ) {
+            Ok(_) => (),
+            Err(err) => panic!("{:?}", err),
+        }
+
+        match self.expression() {
+            Ok(condition) => {
+                match self.consume(
+                    TokenType::RIGHT_PAREN,
+                    "Expect ')' after condition.".to_owned(),
+                ) {
+                    Ok(_) => (),
+                    Err(err) => panic!("{:?}", err),
+                }
+
+                let body = Box::new(self.statement());
+
+                Stmt::While { condition, body }
+            }
+            Err(err) => panic!("{:?}", err),
         }
     }
 

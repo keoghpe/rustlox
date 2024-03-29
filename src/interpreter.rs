@@ -356,4 +356,14 @@ impl StmtVisitor<()> for Interpreter {
             panic!("Nope")
         }
     }
+
+    fn visit_while_stmt(&self, stmt: &Stmt) -> () {
+        if let Stmt::While { condition, body } = stmt {
+            while self.is_truthy(&self.evaluate(condition).unwrap()) {
+                self.execute(&body)
+            }
+        } else {
+            panic!("Nope")
+        }
+    }
 }

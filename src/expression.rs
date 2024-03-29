@@ -88,6 +88,10 @@ pub enum Stmt {
         then_branch: Box<Stmt>,
         else_branch: Option<Box<Stmt>>,
     },
+    While {
+        condition: Expr,
+        body: Box<Stmt>,
+    },
 }
 
 impl Stmt {
@@ -105,6 +109,10 @@ impl Stmt {
                 then_branch: _,
                 else_branch: _,
             } => visitor.visit_if_stmt(self),
+            Stmt::While {
+                condition: _,
+                body: _,
+            } => visitor.visit_while_stmt(self),
         }
     }
 }
@@ -115,6 +123,7 @@ pub trait StmtVisitor<A> {
     fn visit_variable_stmt(&self, stmt: &Stmt) -> A;
     fn visit_block_stmt(&self, stmt: &Stmt) -> A;
     fn visit_if_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_while_stmt(&self, stmt: &Stmt) -> A;
 }
 
 pub struct AstPrinter {}

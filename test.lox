@@ -1,9 +1,6 @@
-if(false) {
-  print "true";
-} else {
-  print "false";
-}
+var i = 0;
 
-print "hi" or 2; // "hi".
-print nil or "yes"; // "yes".
-print "hi" and 2;
+while(i < 10) {
+  print "Value of i is: " + i;
+  i = i + 1;
+}
