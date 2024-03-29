@@ -9,6 +9,7 @@ pub(crate) struct Parser<'a> {
     tokens: &'a Vec<Token>,
 }
 
+#[derive(Debug)]
 struct ParseError {
     message: String,
     line: i64,
@@ -101,7 +102,9 @@ impl Parser<'_> {
     }
 
     fn statement(&mut self) -> Stmt {
-        if self.is_match(vec![TokenType::PRINT]) {
+        if self.is_match(vec![TokenType::IF]) {
+            self.if_statement()
+        } else if self.is_match(vec![TokenType::PRINT]) {
             self.print_statement()
         } else if self.is_match(vec![TokenType::LEFT_BRACE]) {
             Stmt::Block {
@@ -160,6 +163,34 @@ impl Parser<'_> {
                 expr: Box::new(expr),
             },
             Err(_) => panic!("Panicked parsing expression statement"),
+        }
+    }
+
+    fn if_statement(&mut self) -> Stmt {
+        self.consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.".to_owned());
+        let condition_res = self.expression();
+
+        match condition_res {
+            Ok(condition) => {
+                self.consume(
+                    TokenType::RIGHT_PAREN,
+                    "Expect ')' after if condition.".to_owned(),
+                );
+
+                let then_branch = Box::new(self.statement());
+                let mut else_branch = None;
+
+                if self.is_match(vec![TokenType::ELSE]) {
+                    else_branch.replace(Box::new(self.statement()));
+                }
+
+                Stmt::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                }
+            }
+            Err(err) => panic!("{:?}", err),
         }
     }
 

@@ -306,4 +306,21 @@ impl StmtVisitor<()> for Interpreter {
             _ => panic!("Nope!"),
         }
     }
+
+    fn visit_if_stmt(&self, stmt: &Stmt) -> () {
+        if let Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        } = stmt
+        {
+            if self.is_truthy(self.evaluate(condition).unwrap()) {
+                self.execute(&then_branch)
+            } else if let Some(else_stmt) = else_branch {
+                self.execute(else_stmt)
+            }
+        } else {
+            panic!("Nope")
+        }
+    }
 }

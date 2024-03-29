@@ -46,6 +46,7 @@ impl Expr {
         }
     }
 }
+
 pub trait ExprVisitor<A> {
     // TODO replace with Macro?
     fn visit_assign_expr(&self, expr: &Expr) -> A;
@@ -54,27 +55,6 @@ pub trait ExprVisitor<A> {
     fn visit_literal_expr(&self, expr: &Expr) -> A;
     fn visit_unary_expr(&self, expr: &Expr) -> A;
     fn visit_variable_expr(&self, expr: &Expr) -> A;
-}
-
-impl Stmt {
-    pub fn accept<A>(&self, visitor: &dyn StmtVisitor<A>) -> A {
-        match self {
-            Stmt::Expression { expr: _ } => visitor.visit_expression_stmt(self),
-            Stmt::Print { expr: _ } => visitor.visit_print_stmt(self),
-            Stmt::Var {
-                name: _,
-                initializer: _,
-            } => visitor.visit_variable_stmt(self),
-            Stmt::Block { statements: _ } => visitor.visit_block_stmt(self),
-        }
-    }
-}
-
-pub trait StmtVisitor<A> {
-    fn visit_expression_stmt(&self, stmt: &Stmt) -> A;
-    fn visit_print_stmt(&self, stmt: &Stmt) -> A;
-    fn visit_variable_stmt(&self, stmt: &Stmt) -> A;
-    fn visit_block_stmt(&self, stmt: &Stmt) -> A;
 }
 
 #[derive(Debug)]
@@ -92,6 +72,38 @@ pub enum Stmt {
         name: Token,
         initializer: Option<Expr>,
     },
+    If {
+        condition: Expr,
+        then_branch: Box<Stmt>,
+        else_branch: Option<Box<Stmt>>,
+    },
+}
+
+impl Stmt {
+    pub fn accept<A>(&self, visitor: &dyn StmtVisitor<A>) -> A {
+        match self {
+            Stmt::Expression { expr: _ } => visitor.visit_expression_stmt(self),
+            Stmt::Print { expr: _ } => visitor.visit_print_stmt(self),
+            Stmt::Var {
+                name: _,
+                initializer: _,
+            } => visitor.visit_variable_stmt(self),
+            Stmt::Block { statements: _ } => visitor.visit_block_stmt(self),
+            Stmt::If {
+                condition: _,
+                then_branch: _,
+                else_branch: _,
+            } => visitor.visit_if_stmt(self),
+        }
+    }
+}
+
+pub trait StmtVisitor<A> {
+    fn visit_expression_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_print_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_variable_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_block_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_if_stmt(&self, stmt: &Stmt) -> A;
 }
 
 pub struct AstPrinter {}
