@@ -103,9 +103,28 @@ impl Parser<'_> {
     fn statement(&mut self) -> Stmt {
         if self.is_match(vec![TokenType::PRINT]) {
             self.print_statement()
+        } else if self.is_match(vec![TokenType::LEFT_BRACE]) {
+            Stmt::Block {
+                statements: self.block(),
+            }
         } else {
             self.expression_statement()
         }
+    }
+
+    fn block(&mut self) -> Vec<Stmt> {
+        let mut statements = vec![];
+
+        while !self.check(TokenType::RIGHT_BRACE) && !self.is_at_end() {
+            statements.push(self.declaration());
+        }
+
+        self.consume(
+            TokenType::RIGHT_BRACE,
+            "Expect '}' after block.".to_string(),
+        );
+
+        statements
     }
 
     fn expression_statement(&mut self) -> Stmt {

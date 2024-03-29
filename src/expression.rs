@@ -65,6 +65,7 @@ impl Stmt {
                 name: _,
                 initializer: _,
             } => visitor.visit_variable_stmt(self),
+            Stmt::Block { statements: _ } => visitor.visit_block_stmt(self),
         }
     }
 }
@@ -73,10 +74,14 @@ pub trait StmtVisitor<A> {
     fn visit_expression_stmt(&self, stmt: &Stmt) -> A;
     fn visit_print_stmt(&self, stmt: &Stmt) -> A;
     fn visit_variable_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_block_stmt(&self, stmt: &Stmt) -> A;
 }
 
 #[derive(Debug)]
 pub enum Stmt {
+    Block {
+        statements: Vec<Stmt>,
+    },
     Expression {
         expr: Box<Expr>,
     },

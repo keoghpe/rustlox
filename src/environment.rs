@@ -5,13 +5,14 @@ use crate::{
     token::{Token, Value},
 };
 
-pub struct Environment<'a> {
+#[derive(Default, Debug)]
+pub struct Environment {
     values: Mutex<HashMap<String, Value>>,
-    enclosing: Option<Box<&'a Environment<'a>>>,
+    pub enclosing: Option<Box<Environment>>,
 }
 
-impl<'a> Environment<'a> {
-    pub fn new(enclosing: Option<Box<&'a Environment>>) -> Environment<'a> {
+impl Environment {
+    pub fn new(enclosing: Option<Box<Environment>>) -> Environment {
         Environment {
             values: Mutex::new(HashMap::new()),
             enclosing,
@@ -45,7 +46,7 @@ impl<'a> Environment<'a> {
 
     pub fn get(&self, name: Token) -> Result<Value, RuntimeError> {
         // println!("Getting variable: {}", name.lexeme);
-        let mut values_changer = self.values.lock().unwrap();
+        let values_changer = self.values.lock().unwrap();
         // TODO We should not clone here
         if values_changer.contains_key(&name.lexeme) {
             Ok(values_changer.get(&name.lexeme).unwrap().clone())
@@ -162,7 +163,7 @@ mod tests {
         let parent_environment = Environment::new(None);
         parent_environment.define(&foo_token, &Value::Double { value: 10.0 });
 
-        let environment = Environment::new(Some(Box::new(&parent_environment)));
+        let environment = Environment::new(Some(Box::new(parent_environment)));
         environment.define(&bar_token, &Value::Double { value: 20.0 });
 
         assert_eq!(
@@ -194,7 +195,7 @@ mod tests {
 
         let parent_environment = Environment::new(None);
 
-        let environment = Environment::new(Some(Box::new(&parent_environment)));
+        let environment = Environment::new(Some(Box::new(parent_environment)));
         environment.define(&bar_token, &Value::Double { value: 20.0 });
 
         assert_eq!(
@@ -230,14 +231,14 @@ mod tests {
         let parent_environment = Environment::new(None);
         parent_environment.define(&foo_token, &Value::Double { value: 10.0 });
 
-        let environment = Environment::new(Some(Box::new(&parent_environment)));
+        let environment = Environment::new(Some(Box::new(parent_environment)));
         environment.define(&bar_token, &Value::Double { value: 20.0 });
 
         let _ = environment.assign(&foo_token, &Value::Double { value: 20.0 });
 
         assert_eq!(
             Ok(Value::Double { value: 20.0 }),
-            parent_environment.get(foo_token)
+            environment.get(foo_token)
         );
     }
 }

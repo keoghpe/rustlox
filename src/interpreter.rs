@@ -1,4 +1,5 @@
 use core::panic;
+use std::cell::RefCell;
 
 use crate::{
     environment::Environment,
@@ -6,8 +7,8 @@ use crate::{
     token::{TokenType, Value},
 };
 
-pub struct Interpreter<'a> {
-    environment: Environment<'a>,
+pub struct Interpreter {
+    environment: RefCell<Environment>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -27,10 +28,10 @@ impl RuntimeError {
     }
 }
 
-impl<'a> Interpreter<'a> {
-    pub fn new() -> Interpreter<'a> {
+impl Interpreter {
+    pub fn new() -> Interpreter {
         Interpreter {
-            environment: Environment::new(None),
+            environment: RefCell::new(Environment::new(None)),
         }
     }
 
@@ -73,9 +74,36 @@ impl<'a> Interpreter<'a> {
     fn values_are_equal(left: &Value, right: &Value) -> bool {
         left == right
     }
+
+    fn execute_block(&self, statements: &Vec<Stmt>) {
+        // Create a new env that refers to the current env
+        // Replace the current env with the new env
+        // Process the statements
+        // Reset the env back
+        //
+        let parent_env = self.environment.take();
+        println!("parent_env: {:?}", parent_env);
+        let env = Environment::new(Some(Box::new(parent_env)));
+        println!("env: {:?}", env);
+        let previous = self.environment.replace(env);
+
+        println!("Previous: {:?}", previous);
+
+        // self.environment
+        //     .replace_with(|parent_env| Environment::new(Some(Box::new(parent_env))));
+
+        for statement in statements.into_iter() {
+            self.execute(&statement);
+        }
+
+        // println!("Previous before replacement: {:?}", previous);
+        let env = self.environment.take();
+        self.environment.replace(*env.enclosing.unwrap());
+        // self.environment.replace_with(|env| *env.enclosing.unwrap());
+    }
 }
 
-impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter<'_> {
+impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
     fn visit_binary_expr(&self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Binary {
@@ -205,7 +233,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter<'_> {
 
     fn visit_variable_expr(&self, expr: &Expr) -> Result<Value, RuntimeError> {
         match expr {
-            Expr::Variable { name } => self.environment.get(name.clone()),
+            Expr::Variable { name } => self.environment.borrow().get(name.clone()),
             _ => panic!("Nope!"),
         }
     }
@@ -216,7 +244,9 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter<'_> {
                 let value = self.evaluate(value);
 
                 match value {
-                    Ok(expression_value) => self.environment.assign(name, &expression_value),
+                    Ok(expression_value) => {
+                        self.environment.borrow().assign(name, &expression_value)
+                    }
                     Err(err) => Err(err),
                 }
             }
@@ -225,7 +255,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter<'_> {
     }
 }
 
-impl StmtVisitor<()> for Interpreter<'_> {
+impl StmtVisitor<()> for Interpreter {
     fn visit_expression_stmt(&self, stmt: &crate::expression::Stmt) {
         // println!("Visiting expression statement");
         match stmt {
@@ -264,17 +294,24 @@ impl StmtVisitor<()> for Interpreter<'_> {
                 match initializer {
                     Some(initializer_expression) => match self.evaluate(initializer_expression) {
                         Ok(value) => {
-                            self.environment.define(&name, &value);
+                            self.environment.borrow().define(&name, &value);
                         }
                         Err(_) => {
                             panic!("Nope!")
                         }
                     },
                     None => {
-                        self.environment.define(&name, &Value::Nil);
+                        self.environment.borrow().define(&name, &Value::Nil);
                     }
                 }
             }
+            _ => panic!("Nope!"),
+        }
+    }
+
+    fn visit_block_stmt(&self, stmt: &Stmt) -> () {
+        match stmt {
+            Stmt::Block { statements } => self.execute_block(statements),
             _ => panic!("Nope!"),
         }
     }
