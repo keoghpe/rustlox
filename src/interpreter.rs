@@ -82,24 +82,15 @@ impl Interpreter {
         // Reset the env back
         //
         let parent_env = self.environment.take();
-        println!("parent_env: {:?}", parent_env);
         let env = Environment::new(Some(Box::new(parent_env)));
-        println!("env: {:?}", env);
-        let previous = self.environment.replace(env);
-
-        println!("Previous: {:?}", previous);
-
-        // self.environment
-        //     .replace_with(|parent_env| Environment::new(Some(Box::new(parent_env))));
+        self.environment.replace(env);
 
         for statement in statements.into_iter() {
             self.execute(&statement);
         }
 
-        // println!("Previous before replacement: {:?}", previous);
         let env = self.environment.take();
         self.environment.replace(*env.enclosing.unwrap());
-        // self.environment.replace_with(|env| *env.enclosing.unwrap());
     }
 }
 
