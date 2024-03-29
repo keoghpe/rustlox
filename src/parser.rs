@@ -99,7 +99,9 @@ impl Parser<'_> {
     }
 
     fn statement(&mut self) -> Stmt {
-        if self.is_match(vec![TokenType::IF]) {
+        if self.is_match(vec![TokenType::FOR]) {
+            self.for_statement()
+        } else if self.is_match(vec![TokenType::IF]) {
             self.if_statement()
         } else if self.is_match(vec![TokenType::WHILE]) {
             self.while_statement()
@@ -166,6 +168,97 @@ impl Parser<'_> {
             },
             Err(_) => panic!("Panicked parsing expression statement"),
         }
+    }
+
+    fn for_statement(&mut self) -> Stmt {
+        // Here, we de-sugar a for loop into a while loop
+        match self.consume(
+            TokenType::LEFT_PAREN,
+            "Expect '(' after 'while'.".to_owned(),
+        ) {
+            Ok(_) => (),
+            Err(err) => panic!("{:?}", err),
+        }
+
+        let initializer;
+
+        if self.is_match(vec![TokenType::SEMICOLON]) {
+            initializer = None;
+        } else if self.is_match(vec![TokenType::VAR]) {
+            initializer = Some(self.var_declaration());
+        } else {
+            initializer = Some(self.expression_statement());
+        }
+
+        let mut condition = None;
+
+        if !self.check(TokenType::SEMICOLON) {
+            condition.replace(self.expression());
+        }
+
+        match self.consume(
+            TokenType::SEMICOLON,
+            "Expect ';' after loop condition.".to_owned(),
+        ) {
+            Ok(_) => (),
+            Err(err) => panic!("{:?}", err),
+        }
+
+        let mut increment = None;
+
+        if !self.check(TokenType::RIGHT_PAREN) {
+            increment.replace(self.expression());
+        }
+
+        match self.consume(
+            TokenType::RIGHT_PAREN,
+            "Expect ')' after for clauses.".to_owned(),
+        ) {
+            Ok(_) => (),
+            Err(err) => panic!("{:?}", err),
+        }
+
+        let mut body = self.statement();
+
+        if let Some(Ok(increment_expr)) = increment {
+            // TODO Handle the err
+            body = Stmt::Block {
+                statements: vec![
+                    body,
+                    Stmt::Expression {
+                        expr: Box::new(increment_expr),
+                    },
+                ],
+            }
+        }
+
+        if condition.is_none() {
+            condition.replace(Ok(Expr::Literal {
+                value: Value::Boolean { value: true },
+            }));
+        }
+
+        match condition {
+            Some(Ok(condition_expr)) => {
+                body = Stmt::While {
+                    condition: condition_expr,
+                    body: Box::new(body),
+                };
+            }
+            Some(Err(err)) => panic!("{:?}", err),
+            _ => panic!("This shouldn't happen"),
+        }
+
+        match initializer {
+            Some(init_stmt) => {
+                body = Stmt::Block {
+                    statements: vec![init_stmt, body],
+                }
+            }
+            None => (),
+        }
+
+        body
     }
 
     fn while_statement(&mut self) -> Stmt {
