@@ -199,7 +199,11 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                             error: "Cannot perform this with a number and nil".to_string(),
                         }),
                         // TODO - Maybe this is a bug??
-                        Value::Callable { arity, call, value } => Err(RuntimeError {
+                        Value::Callable {
+                            arity: _,
+                            call: _,
+                            value: _,
+                        } => Err(RuntimeError {
                             operator: operator.ttype,
                             error: "Cannot perform this with a number and callable".to_string(),
                         }),
