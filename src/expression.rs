@@ -17,6 +17,11 @@ pub enum Expr {
     Literal {
         value: Value,
     },
+    Logical {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
     Unary {
         operator: Token,
         right: Box<Expr>,
@@ -43,6 +48,11 @@ impl Expr {
             } => visitor.visit_unary_expr(self),
             // TODO replace with Macro?
             Expr::Variable { name: _ } => visitor.visit_variable_expr(self),
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => visitor.visit_logical_expr(self),
         }
     }
 }
@@ -55,6 +65,7 @@ pub trait ExprVisitor<A> {
     fn visit_literal_expr(&self, expr: &Expr) -> A;
     fn visit_unary_expr(&self, expr: &Expr) -> A;
     fn visit_variable_expr(&self, expr: &Expr) -> A;
+    fn visit_logical_expr(&self, expr: &Expr) -> A;
 }
 
 #[derive(Debug)]
@@ -174,6 +185,10 @@ impl ExprVisitor<String> for AstPrinter {
     }
 
     fn visit_assign_expr(&self, _expr: &Expr) -> String {
+        todo!()
+    }
+
+    fn visit_logical_expr(&self, expr: &Expr) -> String {
         todo!()
     }
 }

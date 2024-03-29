@@ -199,7 +199,7 @@ impl Parser<'_> {
     }
 
     fn assignment(&mut self) -> Result<Expr, ParseError> {
-        let expr = self.equality();
+        let expr = self.or();
 
         if self.is_match(vec![TokenType::EQUAL]) {
             let _equals = self.previous();
@@ -223,6 +223,56 @@ impl Parser<'_> {
         }
 
         expr
+    }
+
+    fn or(&mut self) -> Result<Expr, ParseError> {
+        let mut expr_result = self.and();
+
+        match expr_result {
+            Ok(mut expr) => {
+                while self.is_match(vec![TokenType::OR]) {
+                    let operator = self.previous();
+                    match self.and() {
+                        Ok(right) => {
+                            expr = Expr::Logical {
+                                left: Box::new(expr),
+                                operator,
+                                right: Box::new(right),
+                            }
+                        }
+                        Err(err) => return Err(err),
+                    }
+                }
+
+                Ok(expr)
+            }
+            Err(err) => return Err(err),
+        }
+    }
+
+    fn and(&mut self) -> Result<Expr, ParseError> {
+        let mut expr_result = self.equality();
+
+        match expr_result {
+            Ok(mut expr) => {
+                while self.is_match(vec![TokenType::AND]) {
+                    let operator = self.previous();
+                    match self.equality() {
+                        Ok(right) => {
+                            expr = Expr::Logical {
+                                left: Box::new(expr),
+                                operator,
+                                right: Box::new(right),
+                            }
+                        }
+                        Err(err) => return Err(err),
+                    }
+                }
+
+                Ok(expr)
+            }
+            Err(err) => return Err(err),
+        }
     }
 
     fn equality(&mut self) -> Result<Expr, ParseError> {

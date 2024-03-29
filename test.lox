@@ -3,3 +3,7 @@ if(false) {
 } else {
   print "false";
 }
+
+print "hi" or 2; // "hi".
+print nil or "yes"; // "yes".
+print "hi" and 2;

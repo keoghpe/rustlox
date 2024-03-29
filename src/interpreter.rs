@@ -50,9 +50,9 @@ impl Interpreter {
         expr.accept(self)
     }
 
-    pub fn is_truthy(&self, val: Value) -> bool {
+    pub fn is_truthy(&self, val: &Value) -> bool {
         match val {
-            Value::Boolean { value } => value,
+            Value::Boolean { value } => value.clone(),
             Value::Double { value: _ } => true,
             Value::String { value: _ } => true,
             Value::Nil => false,
@@ -213,7 +213,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                         _ => panic!("Nope!"),
                     },
                     crate::token::TokenType::BANG => Ok(Value::Boolean {
-                        value: !self.is_truthy(right_val),
+                        value: !self.is_truthy(&right_val),
                     }),
                     _ => panic!("Nope!"),
                 }
@@ -242,6 +242,36 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                 }
             }
             _ => panic!("Nope!"),
+        }
+    }
+
+    fn visit_logical_expr(&self, expr: &Expr) -> Result<Value, RuntimeError> {
+        if let Expr::Logical {
+            left,
+            operator,
+            right,
+        } = expr
+        {
+            let left_result = self.evaluate(left);
+
+            match left_result {
+                Ok(left) => {
+                    if operator.ttype == TokenType::OR {
+                        if self.is_truthy(&left) {
+                            return Ok(left);
+                        }
+                    } else {
+                        if !self.is_truthy(&left) {
+                            return Ok(left);
+                        }
+                    }
+
+                    self.evaluate(right)
+                }
+                Err(err) => Err(err),
+            }
+        } else {
+            panic!("Nope!")
         }
     }
 }
@@ -314,7 +344,7 @@ impl StmtVisitor<()> for Interpreter {
             else_branch,
         } = stmt
         {
-            if self.is_truthy(self.evaluate(condition).unwrap()) {
+            if self.is_truthy(&self.evaluate(condition).unwrap()) {
                 self.execute(&then_branch)
             } else if let Some(else_stmt) = else_branch {
                 self.execute(else_stmt)
