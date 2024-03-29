@@ -282,7 +282,10 @@ impl StmtVisitor<()> for Interpreter {
         match stmt {
             Stmt::Expression { expr } => {
                 // TODO statements should raise errors
-                self.evaluate(expr);
+                match self.evaluate(expr) {
+                    Ok(_) => (),
+                    Err(err) => println!("{:?}", err),
+                }
             }
             _ => panic!("Nope!"),
         }

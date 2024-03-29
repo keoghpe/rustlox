@@ -81,10 +81,7 @@ impl Parser<'_> {
                         Err(_) => panic!("FUCCBARR"),
                     }
                 } else {
-                    let semicolon_result =
-                        self.consume(TokenType::SEMICOLON, "Expect ';' after value.".to_owned());
-
-                    match semicolon_result {
+                    match self.consume(TokenType::SEMICOLON, "Expect ';' after value.".to_owned()) {
                         Ok(_) => (),
                         Err(err) => {
                             panic!("Panicked parsing expression statement {}", err.message)
@@ -122,10 +119,13 @@ impl Parser<'_> {
             statements.push(self.declaration());
         }
 
-        self.consume(
+        match self.consume(
             TokenType::RIGHT_BRACE,
             "Expect '}' after block.".to_string(),
-        );
+        ) {
+            Ok(_) => (),
+            Err(err) => panic!("{:?}", err),
+        };
 
         statements
     }
@@ -167,15 +167,20 @@ impl Parser<'_> {
     }
 
     fn if_statement(&mut self) -> Stmt {
-        self.consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.".to_owned());
-        let condition_res = self.expression();
+        match self.consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.".to_owned()) {
+            Ok(_) => (),
+            Err(err) => panic!("{:?}", err),
+        }
 
-        match condition_res {
+        match self.expression() {
             Ok(condition) => {
-                self.consume(
+                match self.consume(
                     TokenType::RIGHT_PAREN,
                     "Expect ')' after if condition.".to_owned(),
-                );
+                ) {
+                    Ok(_) => (),
+                    Err(err) => panic!("{:?}", err),
+                }
 
                 let then_branch = Box::new(self.statement());
                 let mut else_branch = None;
@@ -226,9 +231,7 @@ impl Parser<'_> {
     }
 
     fn or(&mut self) -> Result<Expr, ParseError> {
-        let mut expr_result = self.and();
-
-        match expr_result {
+        match self.and() {
             Ok(mut expr) => {
                 while self.is_match(vec![TokenType::OR]) {
                     let operator = self.previous();
@@ -251,9 +254,7 @@ impl Parser<'_> {
     }
 
     fn and(&mut self) -> Result<Expr, ParseError> {
-        let mut expr_result = self.equality();
-
-        match expr_result {
+        match self.equality() {
             Ok(mut expr) => {
                 while self.is_match(vec![TokenType::AND]) {
                     let operator = self.previous();
@@ -276,9 +277,7 @@ impl Parser<'_> {
     }
 
     fn equality(&mut self) -> Result<Expr, ParseError> {
-        let expr_result = self.comparison();
-
-        match expr_result {
+        match self.comparison() {
             Ok(mut expr) => {
                 while self.is_match(vec![TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
                     let operator = self.previous();
@@ -303,9 +302,7 @@ impl Parser<'_> {
     }
 
     fn comparison(&mut self) -> Result<Expr, ParseError> {
-        let expr_result = self.term();
-
-        match expr_result {
+        match self.term() {
             Ok(mut expr) => {
                 while self.is_match(vec![
                     TokenType::GREATER,
@@ -335,9 +332,7 @@ impl Parser<'_> {
     }
 
     fn term(&mut self) -> Result<Expr, ParseError> {
-        let left_result = self.factor();
-
-        match left_result {
+        match self.factor() {
             Ok(mut expr) => {
                 while self.is_match(vec![TokenType::MINUS, TokenType::PLUS]) {
                     let operator = self.previous();
@@ -362,9 +357,7 @@ impl Parser<'_> {
     }
 
     fn factor(&mut self) -> Result<Expr, ParseError> {
-        let left_result = self.unary();
-
-        match left_result {
+        match self.unary() {
             Ok(mut expr) => {
                 while self.is_match(vec![TokenType::SLASH, TokenType::STAR]) {
                     let operator = self.previous();

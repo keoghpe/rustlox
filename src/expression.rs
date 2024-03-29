@@ -49,9 +49,9 @@ impl Expr {
             // TODO replace with Macro?
             Expr::Variable { name: _ } => visitor.visit_variable_expr(self),
             Expr::Logical {
-                left,
-                operator,
-                right,
+                left: _,
+                operator: _,
+                right: _,
             } => visitor.visit_logical_expr(self),
         }
     }
@@ -188,7 +188,7 @@ impl ExprVisitor<String> for AstPrinter {
         todo!()
     }
 
-    fn visit_logical_expr(&self, expr: &Expr) -> String {
+    fn visit_logical_expr(&self, _expr: &Expr) -> String {
         todo!()
     }
 }
