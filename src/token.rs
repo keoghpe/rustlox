@@ -73,6 +73,12 @@ lazy_static! {
     ]);
 }
 
+trait Callable {
+    fn arity(&self) -> i8;
+    fn call(&self, interpreter: &Interpreter, values: &Vec<Value>) -> Value;
+    fn value(&self) -> String;
+}
+
 impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -135,7 +141,7 @@ pub enum Value {
         value: String,
     },
     Nil,
-    Callable {
+    NativeFunction {
         arity: i8,
         call: fn(&Interpreter, &Vec<Value>) -> Value,
         value: String,
@@ -149,7 +155,7 @@ impl fmt::Display for Value {
             Value::Double { value } => f.write_str(&value.to_string()),
             Value::String { value } => f.write_str(&value.to_string()),
             Value::Nil => f.write_str(&"Nil".to_string()),
-            Value::Callable {
+            Value::NativeFunction {
                 arity: _,
                 call: _,
                 value,

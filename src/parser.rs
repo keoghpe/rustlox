@@ -43,12 +43,88 @@ impl Parser<'_> {
     }
 
     fn declaration(&mut self) -> Stmt {
-        if self.is_match(vec![TokenType::VAR]) {
+        if self.is_match(vec![TokenType::FUN]) {
+            self.function("function".to_string())
+        } else if self.is_match(vec![TokenType::VAR]) {
             self.var_declaration()
         } else {
             self.statement()
         }
         // Call syncronize to recover from errors
+    }
+
+    fn function(&mut self, kind: String) -> Stmt {
+        // TODO String interpolation
+        let name;
+        match self.consume(TokenType::IDENTIFIER, "Expect + kind + name.".to_owned()) {
+            Ok(name_token) => name = name_token,
+            Err(err) => {
+                panic!("Panicked parsing function statement {}", err.message)
+            }
+        }
+
+        // TODO String interpolation
+        match self.consume(
+            TokenType::LEFT_PAREN,
+            "Expect '(' after + kind + name.".to_owned(),
+        ) {
+            Ok(_) => (),
+            Err(err) => {
+                panic!("Panicked parsing function statement {}", err.message)
+            }
+        }
+
+        let mut parameters = vec![];
+
+        if !self.check(TokenType::RIGHT_PAREN) {
+            loop {
+                if parameters.len() >= 255 {
+                    self.error(
+                        self.peek(),
+                        "Can't have more than 255 parameters.".to_string(),
+                    );
+                }
+
+                match self.consume(TokenType::IDENTIFIER, "Expect parameter name.".to_string()) {
+                    Ok(parameter) => parameters.push(parameter),
+                    Err(err) => panic!("Error parsing params {:?}", err),
+                }
+
+                if !self.is_match(vec![TokenType::COMMA]) {
+                    break;
+                }
+            }
+        }
+
+        // TODO String interpolation
+        match self.consume(
+            TokenType::RIGHT_PAREN,
+            "Expect ')' after parameters.".to_owned(),
+        ) {
+            Ok(_) => (),
+            Err(err) => {
+                panic!("Panicked parsing function statement {}", err.message)
+            }
+        }
+
+        // TODO String interpolation
+        match self.consume(
+            TokenType::LEFT_BRACE,
+            "Expect '{' before + kind + body.".to_owned(),
+        ) {
+            Ok(_) => (),
+            Err(err) => {
+                panic!("Panicked parsing function statement {}", err.message)
+            }
+        }
+
+        let body = self.block();
+
+        Stmt::Function {
+            name,
+            params: parameters,
+            body,
+        }
     }
 
     fn var_declaration(&mut self) -> Stmt {

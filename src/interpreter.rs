@@ -45,7 +45,7 @@ impl Interpreter {
                 literal: None,
                 line: 0,
             },
-            &Value::Callable {
+            &Value::NativeFunction {
                 arity: 0,
                 call: {
                     |_interpreter, _arguments| {
@@ -87,7 +87,7 @@ impl Interpreter {
             Value::Double { value: _ } => true,
             Value::String { value: _ } => true,
             Value::Nil => false,
-            Value::Callable {
+            Value::NativeFunction {
                 arity: _,
                 call: _,
                 value: _,
@@ -199,13 +199,14 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                             error: "Cannot perform this with a number and nil".to_string(),
                         }),
                         // TODO - Maybe this is a bug??
-                        Value::Callable {
+                        Value::NativeFunction {
                             arity: _,
                             call: _,
                             value: _,
                         } => Err(RuntimeError {
                             operator: operator.ttype,
-                            error: "Cannot perform this with a number and callable".to_string(),
+                            error: "Cannot perform this with a number and NativeFunction"
+                                .to_string(),
                         }),
                     },
                     Value::String { value: left_value } => match operator.ttype {
@@ -337,7 +338,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                 }
             }
 
-            if let Ok(Value::Callable { arity, call, value }) = callee_res {
+            if let Ok(Value::NativeFunction { arity, call, value }) = callee_res {
                 if func_arguments.len() == arity as usize {
                     Ok(call(self, &func_arguments))
                 } else {
@@ -448,5 +449,9 @@ impl StmtVisitor<()> for Interpreter {
         } else {
             panic!("Nope")
         }
+    }
+
+    fn visit_function_stmt(&self, stmt: &Stmt) -> () {
+        todo!()
     }
 }

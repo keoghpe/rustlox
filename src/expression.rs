@@ -94,6 +94,11 @@ pub enum Stmt {
         name: Token,
         initializer: Option<Expr>,
     },
+    Function {
+        name: Token,
+        params: Vec<Token>,
+        body: Vec<Stmt>,
+    },
     If {
         condition: Expr,
         then_branch: Box<Stmt>,
@@ -124,6 +129,11 @@ impl Stmt {
                 condition: _,
                 body: _,
             } => visitor.visit_while_stmt(self),
+            Stmt::Function {
+                name: _,
+                params: _,
+                body: _,
+            } => visitor.visit_function_stmt(self),
         }
     }
 }
@@ -135,6 +145,7 @@ pub trait StmtVisitor<A> {
     fn visit_block_stmt(&self, stmt: &Stmt) -> A;
     fn visit_if_stmt(&self, stmt: &Stmt) -> A;
     fn visit_while_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_function_stmt(&self, stmt: &Stmt) -> A;
 }
 
 pub struct AstPrinter {}
