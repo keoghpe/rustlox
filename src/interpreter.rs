@@ -109,20 +109,21 @@ impl Interpreter {
         left == right
     }
 
-    fn execute_block(&self, statements: &Vec<Stmt>) {
+    pub fn execute_block(&self, statements: &Vec<Stmt>, environment: Environment) {
         // Create a new env that refers to the current env
         // Replace the current env with the new env
         // Process the statements
         // Reset the env back
-        //
-        let parent_env = self.environment.take();
-        let env = Environment::new(Some(Box::new(parent_env)));
+        // //
+        // let parent_env = self.environment.take();
+        let env = Environment::new(Some(Box::new(environment)));
         self.environment.replace(env);
 
         for statement in statements.into_iter() {
             self.execute(&statement);
         }
 
+        // TODO - this needs to reset to the previous env, not the enclosing of the current env
         let env = self.environment.take();
         self.environment.replace(*env.enclosing.unwrap());
     }
@@ -412,7 +413,7 @@ impl StmtVisitor<()> for Interpreter {
 
     fn visit_block_stmt(&self, stmt: &Stmt) -> () {
         match stmt {
-            Stmt::Block { statements } => self.execute_block(statements),
+            Stmt::Block { statements } => self.execute_block(statements, self.environment.take()),
             _ => panic!("Nope!"),
         }
     }
@@ -445,6 +446,17 @@ impl StmtVisitor<()> for Interpreter {
     }
 
     fn visit_function_stmt(&self, stmt: &Stmt) -> () {
-        todo!()
+        if let Stmt::Function { name, params, body } = stmt {
+            self.environment.borrow().define(
+                name,
+                &Value::Callable {
+                    callable: Callable::Function {
+                        declaration: Box::new(stmt.clone()),
+                    },
+                },
+            )
+        } else {
+            panic!("Nope")
+        }
     }
 }

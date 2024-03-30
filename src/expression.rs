@@ -1,6 +1,6 @@
 use crate::token::{Token, Value};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Assign {
         name: Token,
@@ -79,7 +79,7 @@ pub trait ExprVisitor<A> {
     fn visit_call_expr(&self, expr: &Expr) -> A;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     Block {
         statements: Vec<Stmt>,

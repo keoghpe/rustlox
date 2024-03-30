@@ -1,8 +1,12 @@
 use core::fmt;
 use lazy_static::lazy_static;
-use std::{borrow::Borrow, collections::HashMap, fmt::Debug};
+use std::{borrow::Borrow, collections::HashMap, env, fmt::Debug};
 
-use crate::interpreter::Interpreter;
+use crate::{
+    environment::{self, Environment},
+    expression::Stmt,
+    interpreter::Interpreter,
+};
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -130,6 +134,9 @@ pub enum Callable {
         call: fn(&Interpreter, &Vec<Value>) -> Value,
         value: String,
     },
+    Function {
+        declaration: Box<Stmt>,
+    },
 }
 
 impl Callable {
@@ -140,6 +147,18 @@ impl Callable {
                 call: _,
                 value: _,
             } => arity.clone(),
+            Callable::Function { declaration } => {
+                if let Stmt::Function {
+                    name: _,
+                    params,
+                    body: _,
+                } = declaration.as_ref()
+                {
+                    params.len() as i8
+                } else {
+                    panic!("No params")
+                }
+            }
         }
     }
 
@@ -150,6 +169,27 @@ impl Callable {
                 call,
                 value: _,
             } => call(interpreter, values),
+            Callable::Function { declaration } => {
+                if let Stmt::Function {
+                    name: _,
+                    params,
+                    body,
+                } = declaration.as_ref()
+                {
+                    // TODO Environment should have globals as it's enclosing.
+                    let environment = Environment::new(None);
+
+                    for (i, param) in params.iter().enumerate() {
+                        environment.define(param, &values[i]);
+                    }
+
+                    interpreter.execute_block(body, environment);
+                    // TODO Why do we return nil here?
+                    Value::Nil
+                } else {
+                    panic!("Nope!")
+                }
+            }
         }
     }
 
@@ -160,6 +200,18 @@ impl Callable {
                 call: _,
                 value,
             } => value.clone(),
+            Callable::Function { declaration } => {
+                if let Stmt::Function {
+                    name,
+                    params: _,
+                    body: _,
+                } = declaration.as_ref()
+                {
+                    name.to_string()
+                } else {
+                    panic!("Nope!")
+                }
+            }
         }
     }
 }
@@ -185,7 +237,7 @@ impl fmt::Display for Value {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub(crate) ttype: TokenType,
     pub(crate) lexeme: String,

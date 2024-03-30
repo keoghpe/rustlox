@@ -1,6 +1,4 @@
-var i = 0;
-
-while(i < 10) {
-  print clock();
-  i = 1 + i;
+fun sayHi(first, last) {
+    print "Hi, " + first + " " + last + "!";
 }
+sayHi("Dear", "Reader");
