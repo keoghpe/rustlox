@@ -7,7 +7,7 @@ use std::{
 use crate::{
     environment::Environment,
     expression::{Expr, ExprVisitor, Stmt, StmtVisitor},
-    token::{Token, TokenType, Value},
+    token::{Callable, Token, TokenType, Value},
 };
 
 pub struct Interpreter {
@@ -45,21 +45,23 @@ impl Interpreter {
                 literal: None,
                 line: 0,
             },
-            &Value::NativeFunction {
-                arity: 0,
-                call: {
-                    |_interpreter, _arguments| {
-                        let start = SystemTime::now();
-                        let since_the_epoch = start
-                            .duration_since(UNIX_EPOCH)
-                            .expect("Time went backwards");
+            &Value::Callable {
+                callable: Callable::NativeFunction {
+                    arity: 0,
+                    call: {
+                        |_interpreter, _arguments| {
+                            let start = SystemTime::now();
+                            let since_the_epoch = start
+                                .duration_since(UNIX_EPOCH)
+                                .expect("Time went backwards");
 
-                        Value::Double {
-                            value: since_the_epoch.as_millis() as f64,
+                            Value::Double {
+                                value: since_the_epoch.as_millis() as f64,
+                            }
                         }
-                    }
+                    },
+                    value: "<native fn>".to_owned(),
                 },
-                value: "<native fn>".to_owned(),
             },
         );
 
@@ -87,11 +89,7 @@ impl Interpreter {
             Value::Double { value: _ } => true,
             Value::String { value: _ } => true,
             Value::Nil => false,
-            Value::NativeFunction {
-                arity: _,
-                call: _,
-                value: _,
-            } => true,
+            Value::Callable { callable: _ } => true,
         }
     }
 
@@ -199,14 +197,9 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                             error: "Cannot perform this with a number and nil".to_string(),
                         }),
                         // TODO - Maybe this is a bug??
-                        Value::NativeFunction {
-                            arity: _,
-                            call: _,
-                            value: _,
-                        } => Err(RuntimeError {
+                        Value::Callable { callable } => Err(RuntimeError {
                             operator: operator.ttype,
-                            error: "Cannot perform this with a number and NativeFunction"
-                                .to_string(),
+                            error: "Cannot perform this with a number and Callable".to_string(),
                         }),
                     },
                     Value::String { value: left_value } => match operator.ttype {
@@ -338,9 +331,9 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                 }
             }
 
-            if let Ok(Value::NativeFunction { arity, call, value }) = callee_res {
-                if func_arguments.len() == arity as usize {
-                    Ok(call(self, &func_arguments))
+            if let Ok(Value::Callable { callable }) = callee_res {
+                if func_arguments.len() == callable.arity() as usize {
+                    Ok(callable.call(self, &func_arguments))
                 } else {
                     return Err(RuntimeError {
                         operator: paren.ttype,

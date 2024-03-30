@@ -1,6 +1,6 @@
 use core::fmt;
 use lazy_static::lazy_static;
-use std::{borrow::Borrow, collections::HashMap};
+use std::{borrow::Borrow, collections::HashMap, fmt::Debug};
 
 use crate::interpreter::Interpreter;
 
@@ -73,12 +73,6 @@ lazy_static! {
     ]);
 }
 
-trait Callable {
-    fn arity(&self) -> i8;
-    fn call(&self, interpreter: &Interpreter, values: &Vec<Value>) -> Value;
-    fn value(&self) -> String;
-}
-
 impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -130,22 +124,53 @@ impl fmt::Display for TokenType {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum Value {
-    Boolean {
-        value: bool,
-    },
-    Double {
-        value: f64,
-    },
-    String {
-        value: String,
-    },
-    Nil,
+pub enum Callable {
     NativeFunction {
         arity: i8,
         call: fn(&Interpreter, &Vec<Value>) -> Value,
         value: String,
     },
+}
+
+impl Callable {
+    pub fn arity(&self) -> i8 {
+        match self {
+            Callable::NativeFunction {
+                arity,
+                call: _,
+                value: _,
+            } => arity.clone(),
+        }
+    }
+
+    pub fn call(&self, interpreter: &Interpreter, values: &Vec<Value>) -> Value {
+        match self {
+            Callable::NativeFunction {
+                arity: _,
+                call,
+                value: _,
+            } => call(interpreter, values),
+        }
+    }
+
+    pub fn value(&self) -> String {
+        match self {
+            Callable::NativeFunction {
+                arity: _,
+                call: _,
+                value,
+            } => value.clone(),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum Value {
+    Boolean { value: bool },
+    Double { value: f64 },
+    String { value: String },
+    Nil,
+    Callable { callable: Callable },
 }
 
 impl fmt::Display for Value {
@@ -155,11 +180,7 @@ impl fmt::Display for Value {
             Value::Double { value } => f.write_str(&value.to_string()),
             Value::String { value } => f.write_str(&value.to_string()),
             Value::Nil => f.write_str(&"Nil".to_string()),
-            Value::NativeFunction {
-                arity: _,
-                call: _,
-                value,
-            } => f.write_str(&value),
+            Value::Callable { callable } => f.write_str(&callable.value()),
         }
     }
 }
