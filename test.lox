@@ -1,4 +1,23 @@
 fun sayHi(first, last) {
     print "Hi, " + first + " " + last + "!";
 }
-sayHi("Dear", "Reader");
+
+var a = "a";
+var b = "b";
+
+print a;
+print b;
+
+{
+  b = "a";
+  print a;
+  print b;
+
+  sayHi("Dear", "Reader");
+  print a;
+  print b;
+}
+
+print a;
+print b;
+

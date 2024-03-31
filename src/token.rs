@@ -1,6 +1,6 @@
 use core::fmt;
 use lazy_static::lazy_static;
-use std::{borrow::Borrow, collections::HashMap, env, fmt::Debug};
+use std::{borrow::Borrow, collections::HashMap, env, fmt::Debug, rc::Rc};
 
 use crate::{
     environment::{self, Environment},
@@ -162,7 +162,7 @@ impl Callable {
         }
     }
 
-    pub fn call(&self, interpreter: &Interpreter, values: &Vec<Value>) -> Value {
+    pub fn call(&self, interpreter: &mut Interpreter, values: &Vec<Value>) -> Value {
         match self {
             Callable::NativeFunction {
                 arity: _,
@@ -177,7 +177,7 @@ impl Callable {
                 } = declaration.as_ref()
                 {
                     // TODO Environment should have globals as it's enclosing.
-                    let environment = Environment::new(None);
+                    let environment = Environment::new(Some(Rc::clone(&interpreter.global)));
 
                     for (i, param) in params.iter().enumerate() {
                         environment.define(param, &values[i]);

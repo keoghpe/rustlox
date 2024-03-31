@@ -37,7 +37,7 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn accept<A>(&self, visitor: &dyn ExprVisitor<A>) -> A {
+    pub fn accept<A>(&self, visitor: &mut dyn ExprVisitor<A>) -> A {
         match self {
             Expr::Assign { name: _, value: _ } => visitor.visit_assign_expr(self),
             Expr::Binary {
@@ -69,14 +69,14 @@ impl Expr {
 
 pub trait ExprVisitor<A> {
     // TODO replace with Macro?
-    fn visit_assign_expr(&self, expr: &Expr) -> A;
-    fn visit_binary_expr(&self, expr: &Expr) -> A;
-    fn visit_grouping_expr(&self, expr: &Expr) -> A;
-    fn visit_literal_expr(&self, expr: &Expr) -> A;
-    fn visit_unary_expr(&self, expr: &Expr) -> A;
-    fn visit_variable_expr(&self, expr: &Expr) -> A;
-    fn visit_logical_expr(&self, expr: &Expr) -> A;
-    fn visit_call_expr(&self, expr: &Expr) -> A;
+    fn visit_assign_expr(&mut self, expr: &Expr) -> A;
+    fn visit_binary_expr(&mut self, expr: &Expr) -> A;
+    fn visit_grouping_expr(&mut self, expr: &Expr) -> A;
+    fn visit_literal_expr(&mut self, expr: &Expr) -> A;
+    fn visit_unary_expr(&mut self, expr: &Expr) -> A;
+    fn visit_variable_expr(&mut self, expr: &Expr) -> A;
+    fn visit_logical_expr(&mut self, expr: &Expr) -> A;
+    fn visit_call_expr(&mut self, expr: &Expr) -> A;
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -111,7 +111,7 @@ pub enum Stmt {
 }
 
 impl Stmt {
-    pub fn accept<A>(&self, visitor: &dyn StmtVisitor<A>) -> A {
+    pub fn accept<A>(&self, visitor: &mut dyn StmtVisitor<A>) -> A {
         match self {
             Stmt::Expression { expr: _ } => visitor.visit_expression_stmt(self),
             Stmt::Print { expr: _ } => visitor.visit_print_stmt(self),
@@ -139,91 +139,91 @@ impl Stmt {
 }
 
 pub trait StmtVisitor<A> {
-    fn visit_expression_stmt(&self, stmt: &Stmt) -> A;
-    fn visit_print_stmt(&self, stmt: &Stmt) -> A;
-    fn visit_variable_stmt(&self, stmt: &Stmt) -> A;
-    fn visit_block_stmt(&self, stmt: &Stmt) -> A;
-    fn visit_if_stmt(&self, stmt: &Stmt) -> A;
-    fn visit_while_stmt(&self, stmt: &Stmt) -> A;
-    fn visit_function_stmt(&self, stmt: &Stmt) -> A;
+    fn visit_expression_stmt(&mut self, stmt: &Stmt) -> A;
+    fn visit_print_stmt(&mut self, stmt: &Stmt) -> A;
+    fn visit_variable_stmt(&mut self, stmt: &Stmt) -> A;
+    fn visit_block_stmt(&mut self, stmt: &Stmt) -> A;
+    fn visit_if_stmt(&mut self, stmt: &Stmt) -> A;
+    fn visit_while_stmt(&mut self, stmt: &Stmt) -> A;
+    fn visit_function_stmt(&mut self, stmt: &Stmt) -> A;
 }
 
-pub struct AstPrinter {}
+// pub struct AstPrinter {}
 
-impl AstPrinter {
-    // pub fn print(&self, expr: &Expr) -> String {
-    //     expr.accept(self)
-    // }
+// impl AstPrinter {
+//     // pub fn print(&self, expr: &Expr) -> String {
+//     //     expr.accept(self)
+//     // }
 
-    fn parenthesize(&self, name: String, expr1: &Expr, expr2: Option<&Expr>) -> String {
-        let mut string = ("(".to_string() + &name + " ").to_owned() + &expr1.accept(self);
+//     fn parenthesize(&mut self, name: String, expr1: &Expr, expr2: Option<&Expr>) -> String {
+//         let mut string = ("(".to_string() + &name + " ").to_owned() + &expr1.accept(self);
 
-        match expr2 {
-            Some(expr) => string = string + " " + &expr.accept(self),
-            None => (),
-        }
+//         match expr2 {
+//             Some(expr) => string = string + " " + &expr.accept(self),
+//             None => (),
+//         }
 
-        string = string + ")";
+//         string = string + ")";
 
-        string
-    }
-}
+//         string
+//     }
+// }
 
-impl ExprVisitor<String> for AstPrinter {
-    fn visit_binary_expr(&self, expr: &Expr) -> String {
-        match expr {
-            Expr::Binary {
-                left,
-                operator,
-                right,
-            } => self.parenthesize(operator.lexeme.to_string(), &*left, Some(&*right)),
-            _ => panic!("Nope!"),
-        }
-    }
+// impl ExprVisitor<String> for AstPrinter {
+//     fn visit_binary_expr(&self, expr: &Expr) -> String {
+//         match expr {
+//             Expr::Binary {
+//                 left,
+//                 operator,
+//                 right,
+//             } => self.parenthesize(operator.lexeme.to_string(), &*left, Some(&*right)),
+//             _ => panic!("Nope!"),
+//         }
+//     }
 
-    fn visit_grouping_expr(&self, expr: &Expr) -> String {
-        match expr {
-            Expr::Grouping { expression } => {
-                self.parenthesize("group".to_owned(), &*expression, None)
-            }
-            _ => panic!("Nope!"),
-        }
-    }
+//     fn visit_grouping_expr(&self, expr: &Expr) -> String {
+//         match expr {
+//             Expr::Grouping { expression } => {
+//                 self.parenthesize("group".to_owned(), &*expression, None)
+//             }
+//             _ => panic!("Nope!"),
+//         }
+//     }
 
-    fn visit_literal_expr(&self, expr: &Expr) -> String {
-        match expr {
-            Expr::Literal { value } => value.to_string(),
-            _ => panic!("Nope!"),
-        }
-    }
+//     fn visit_literal_expr(&self, expr: &Expr) -> String {
+//         match expr {
+//             Expr::Literal { value } => value.to_string(),
+//             _ => panic!("Nope!"),
+//         }
+//     }
 
-    fn visit_unary_expr(&self, expr: &Expr) -> String {
-        match expr {
-            Expr::Unary { operator, right } => {
-                self.parenthesize(operator.lexeme.to_string(), &*right, None)
-            }
-            _ => panic!("Nope!"),
-        }
-    }
+//     fn visit_unary_expr(&self, expr: &Expr) -> String {
+//         match expr {
+//             Expr::Unary { operator, right } => {
+//                 self.parenthesize(operator.lexeme.to_string(), &*right, None)
+//             }
+//             _ => panic!("Nope!"),
+//         }
+//     }
 
-    fn visit_variable_expr(&self, expr: &Expr) -> String {
-        match expr {
-            Expr::Variable { name: _ } => {
-                todo!()
-            }
-            _ => panic!("Nope!"),
-        }
-    }
+//     fn visit_variable_expr(&self, expr: &Expr) -> String {
+//         match expr {
+//             Expr::Variable { name: _ } => {
+//                 todo!()
+//             }
+//             _ => panic!("Nope!"),
+//         }
+//     }
 
-    fn visit_assign_expr(&self, _expr: &Expr) -> String {
-        todo!()
-    }
+//     fn visit_assign_expr(&self, _expr: &Expr) -> String {
+//         todo!()
+//     }
 
-    fn visit_logical_expr(&self, _expr: &Expr) -> String {
-        todo!()
-    }
+//     fn visit_logical_expr(&self, _expr: &Expr) -> String {
+//         todo!()
+//     }
 
-    fn visit_call_expr(&self, expr: &Expr) -> String {
-        todo!()
-    }
-}
+//     fn visit_call_expr(&mut self, expr: &Expr) -> String {
+//         todo!()
+//     }
+// }

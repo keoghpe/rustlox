@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
 use crate::{
     interpreter::RuntimeError,
@@ -8,11 +8,11 @@ use crate::{
 #[derive(Default, Debug)]
 pub struct Environment {
     values: Mutex<HashMap<String, Value>>,
-    pub enclosing: Option<Box<Environment>>,
+    pub enclosing: Option<Rc<Environment>>,
 }
 
 impl Environment {
-    pub fn new(enclosing: Option<Box<Environment>>) -> Environment {
+    pub fn new(enclosing: Option<Rc<Environment>>) -> Environment {
         Environment {
             values: Mutex::new(HashMap::new()),
             enclosing,

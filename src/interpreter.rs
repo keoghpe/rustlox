@@ -1,6 +1,7 @@
 use core::panic;
 use std::{
     cell::RefCell,
+    rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -11,7 +12,8 @@ use crate::{
 };
 
 pub struct Interpreter {
-    environment: RefCell<Environment>,
+    pub global: Rc<Environment>,
+    environment: Rc<Environment>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -33,12 +35,15 @@ impl RuntimeError {
 
 impl Interpreter {
     pub fn new() -> Interpreter {
+        let env = Rc::new(Environment::new(None));
+
         let interpreter = Interpreter {
-            environment: RefCell::new(Environment::new(None)),
+            environment: Rc::clone(&env),
+            global: Rc::clone(&env),
         };
 
         // Native function definitions
-        interpreter.environment.borrow().define(
+        interpreter.environment.define(
             &Token {
                 ttype: TokenType::IDENTIFIER,
                 lexeme: "clock".to_string(),
@@ -68,18 +73,18 @@ impl Interpreter {
         interpreter
     }
 
-    pub fn interpret(&self, statements: &Vec<Stmt>) {
+    pub fn interpret(&mut self, statements: &Vec<Stmt>) {
         for statement in statements.into_iter() {
             self.execute(statement)
             // TODO Handle Errors
         }
     }
 
-    fn execute(&self, stmt: &Stmt) {
+    fn execute(&mut self, stmt: &Stmt) {
         stmt.accept(self)
     }
 
-    pub fn evaluate(&self, expr: &Expr) -> Result<Value, RuntimeError> {
+    pub fn evaluate(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
         expr.accept(self)
     }
 
@@ -109,28 +114,27 @@ impl Interpreter {
         left == right
     }
 
-    pub fn execute_block(&self, statements: &Vec<Stmt>, environment: Environment) {
+    pub fn execute_block(&mut self, statements: &Vec<Stmt>, environment: Environment) {
         // Create a new env that refers to the current env
         // Replace the current env with the new env
         // Process the statements
         // Reset the env back
         // //
         // let parent_env = self.environment.take();
-        let env = Environment::new(Some(Box::new(environment)));
-        self.environment.replace(env);
+        let prev = Rc::clone(&self.environment);
+        self.environment = environment.into();
 
         for statement in statements.into_iter() {
             self.execute(&statement);
         }
 
         // TODO - this needs to reset to the previous env, not the enclosing of the current env
-        let env = self.environment.take();
-        self.environment.replace(*env.enclosing.unwrap());
+        self.environment = prev;
     }
 }
 
 impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
-    fn visit_binary_expr(&self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
+    fn visit_binary_expr(&mut self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Binary {
                 left,
@@ -224,21 +228,27 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_grouping_expr(&self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
+    fn visit_grouping_expr(
+        &mut self,
+        expr: &crate::expression::Expr,
+    ) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Grouping { expression } => self.evaluate(&expression),
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_literal_expr(&self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
+    fn visit_literal_expr(
+        &mut self,
+        expr: &crate::expression::Expr,
+    ) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Literal { value } => Ok(value.clone()),
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_unary_expr(&self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
+    fn visit_unary_expr(&mut self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Unary { operator, right } => {
                 let right_val = match self.evaluate(right) {
@@ -262,22 +272,20 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_variable_expr(&self, expr: &Expr) -> Result<Value, RuntimeError> {
+    fn visit_variable_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
         match expr {
-            Expr::Variable { name } => self.environment.borrow().get(name.clone()),
+            Expr::Variable { name } => self.environment.get(name.clone()),
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_assign_expr(&self, expr: &Expr) -> Result<Value, RuntimeError> {
+    fn visit_assign_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Assign { name, value } => {
                 let value = self.evaluate(value);
 
                 match value {
-                    Ok(expression_value) => {
-                        self.environment.borrow().assign(name, &expression_value)
-                    }
+                    Ok(expression_value) => self.environment.assign(name, &expression_value),
                     Err(err) => Err(err),
                 }
             }
@@ -285,7 +293,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_logical_expr(&self, expr: &Expr) -> Result<Value, RuntimeError> {
+    fn visit_logical_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
         if let Expr::Logical {
             left,
             operator,
@@ -315,7 +323,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_call_expr(&self, expr: &Expr) -> Result<Value, RuntimeError> {
+    fn visit_call_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
         if let Expr::Call {
             callee,
             paren,
@@ -355,7 +363,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
 }
 
 impl StmtVisitor<()> for Interpreter {
-    fn visit_expression_stmt(&self, stmt: &crate::expression::Stmt) {
+    fn visit_expression_stmt(&mut self, stmt: &crate::expression::Stmt) {
         // println!("Visiting expression statement");
         match stmt {
             Stmt::Expression { expr } => {
@@ -369,7 +377,7 @@ impl StmtVisitor<()> for Interpreter {
         }
     }
 
-    fn visit_print_stmt(&self, stmt: &crate::expression::Stmt) {
+    fn visit_print_stmt(&mut self, stmt: &crate::expression::Stmt) {
         // println!("Visiting print statement");
         match stmt {
             Stmt::Print { expr } => {
@@ -388,7 +396,7 @@ impl StmtVisitor<()> for Interpreter {
         }
     }
 
-    fn visit_variable_stmt(&self, stmt: &Stmt) -> () {
+    fn visit_variable_stmt(&mut self, stmt: &Stmt) -> () {
         match stmt {
             Stmt::Var { name, initializer } => {
                 // TODO statements should raise errors
@@ -396,14 +404,14 @@ impl StmtVisitor<()> for Interpreter {
                 match initializer {
                     Some(initializer_expression) => match self.evaluate(initializer_expression) {
                         Ok(value) => {
-                            self.environment.borrow().define(&name, &value);
+                            self.environment.define(&name, &value);
                         }
                         Err(_) => {
                             panic!("Nope!")
                         }
                     },
                     None => {
-                        self.environment.borrow().define(&name, &Value::Nil);
+                        self.environment.define(&name, &Value::Nil);
                     }
                 }
             }
@@ -411,21 +419,25 @@ impl StmtVisitor<()> for Interpreter {
         }
     }
 
-    fn visit_block_stmt(&self, stmt: &Stmt) -> () {
+    fn visit_block_stmt(&mut self, stmt: &Stmt) -> () {
         match stmt {
-            Stmt::Block { statements } => self.execute_block(statements, self.environment.take()),
+            Stmt::Block { statements } => {
+                let env = Environment::new(Some(Rc::clone(&self.environment)));
+                self.execute_block(statements, env);
+            }
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_if_stmt(&self, stmt: &Stmt) -> () {
+    fn visit_if_stmt(&mut self, stmt: &Stmt) -> () {
         if let Stmt::If {
             condition,
             then_branch,
             else_branch,
         } = stmt
         {
-            if self.is_truthy(&self.evaluate(condition).unwrap()) {
+            let value = self.evaluate(condition).unwrap();
+            if self.is_truthy(&value) {
                 self.execute(&then_branch)
             } else if let Some(else_stmt) = else_branch {
                 self.execute(else_stmt)
@@ -435,9 +447,13 @@ impl StmtVisitor<()> for Interpreter {
         }
     }
 
-    fn visit_while_stmt(&self, stmt: &Stmt) -> () {
+    fn visit_while_stmt(&mut self, stmt: &Stmt) -> () {
         if let Stmt::While { condition, body } = stmt {
-            while self.is_truthy(&self.evaluate(condition).unwrap()) {
+            loop {
+                let val = self.evaluate(condition).unwrap();
+                if self.is_truthy(&val) {
+                    break;
+                }
                 self.execute(&body)
             }
         } else {
@@ -445,9 +461,9 @@ impl StmtVisitor<()> for Interpreter {
         }
     }
 
-    fn visit_function_stmt(&self, stmt: &Stmt) -> () {
+    fn visit_function_stmt(&mut self, stmt: &Stmt) -> () {
         if let Stmt::Function { name, params, body } = stmt {
-            self.environment.borrow().define(
+            self.environment.define(
                 name,
                 &Value::Callable {
                     callable: Callable::Function {
