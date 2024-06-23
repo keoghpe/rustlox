@@ -179,6 +179,7 @@ impl Callable {
                         environment.define(param, &values[i]);
                     }
 
+                    // TODO Handle return
                     interpreter.execute_block(body, environment);
                     // TODO Why do we return nil here?
                     Value::Nil

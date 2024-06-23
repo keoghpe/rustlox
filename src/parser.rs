@@ -185,6 +185,8 @@ impl Parser<'_> {
             self.while_statement()
         } else if self.is_match(vec![TokenType::PRINT]) {
             self.print_statement()
+        } else if self.is_match(vec![TokenType::RETURN]) {
+            self.return_statement()
         } else if self.is_match(vec![TokenType::LEFT_BRACE]) {
             Stmt::Block {
                 statements: self.block(),
@@ -245,6 +247,28 @@ impl Parser<'_> {
                 expr: Box::new(expr),
             },
             Err(_) => panic!("Panicked parsing expression statement"),
+        }
+    }
+
+    fn return_statement(&mut self) -> Stmt {
+        let keyword = self.previous();
+        let mut value = Expr::Literal { value: Value::Nil };
+
+        if !self.check(TokenType::SEMICOLON) {
+            value = self.expression().unwrap();
+        }
+
+        match self.consume(
+            TokenType::SEMICOLON,
+            "Expect ';' after 'return'.".to_owned(),
+        ) {
+            Ok(_) => (),
+            Err(err) => panic!("{:?}", err),
+        }
+
+        Stmt::Return {
+            keyword,
+            value: Box::new(value),
         }
     }
 

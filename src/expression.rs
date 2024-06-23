@@ -1,4 +1,7 @@
-use crate::token::{Token, Value};
+use crate::{
+    interpreter::Return,
+    token::{Token, Value},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -108,6 +111,10 @@ pub enum Stmt {
         condition: Expr,
         body: Box<Stmt>,
     },
+    Return {
+        keyword: Token,
+        value: Box<Expr>,
+    },
 }
 
 impl Stmt {
@@ -134,6 +141,7 @@ impl Stmt {
                 params: _,
                 body: _,
             } => visitor.visit_function_stmt(self),
+            Stmt::Return { keyword, value } => visitor.visit_return_stmt(self),
         }
     }
 }
@@ -146,6 +154,7 @@ pub trait StmtVisitor<A> {
     fn visit_if_stmt(&mut self, stmt: &Stmt) -> A;
     fn visit_while_stmt(&mut self, stmt: &Stmt) -> A;
     fn visit_function_stmt(&mut self, stmt: &Stmt) -> A;
+    fn visit_return_stmt(&mut self, stmt: &Stmt) -> A;
 }
 
 // pub struct AstPrinter {}

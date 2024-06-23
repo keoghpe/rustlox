@@ -15,6 +15,10 @@ pub struct Interpreter {
     environment: Rc<Environment>,
 }
 
+pub struct Return {
+    value: Value,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct RuntimeError {
     // TODO Replace operator with token so we can print the line number in the error
@@ -118,6 +122,7 @@ impl Interpreter {
         left == right
     }
 
+    // TODO Does this need to return a Return?
     pub fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
@@ -133,6 +138,7 @@ impl Interpreter {
         self.environment = environment.into();
 
         for statement in statements.into_iter() {
+            // TODO Do we need to break out here to return?
             match self.execute(&statement) {
                 Ok(_) => (),
                 Err(err) => {
@@ -508,6 +514,26 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
             );
 
             Ok(())
+        } else {
+            panic!("Nope")
+        }
+    }
+
+    // TODO This should return a return with an enclosing value
+    fn visit_return_stmt(&mut self, stmt: &Stmt) -> () {
+        if let Stmt::Return { keyword, value } = stmt {
+            // self.environment.define(
+            //     name,
+            //     &Value::Callable {
+            //         callable: Callable::Function {
+            //             declaration: Box::new(stmt.clone()),
+            //         },
+            //     },
+            // )
+
+            let value = self.evaluate(value);
+
+            // Return { value }
         } else {
             panic!("Nope")
         }
