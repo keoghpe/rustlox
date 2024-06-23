@@ -12,17 +12,19 @@ pub(crate) struct Parser<'a> {
 #[derive(Debug)]
 struct ParseError {
     message: String,
+    #[allow(dead_code)]
     line: i64,
+    #[allow(dead_code)]
     error_where: String,
 }
 
 impl ParseError {
-    fn report(&self) {
-        println!(
-            "[line {}] Error{}: {}",
-            self.line, self.error_where, self.message
-        );
-    }
+    // fn report(&self) {
+    //     println!(
+    //         "[line {}] Error{}: {}",
+    //         self.line, self.error_where, self.message
+    //     );
+    // }
 }
 
 impl Parser<'_> {
@@ -53,7 +55,7 @@ impl Parser<'_> {
         // Call syncronize to recover from errors
     }
 
-    fn function(&mut self, kind: String) -> Stmt {
+    fn function(&mut self, _kind: String) -> Stmt {
         // TODO String interpolation
         let name;
         match self.consume(TokenType::IDENTIFIER, "Expect + kind + name.".to_owned()) {

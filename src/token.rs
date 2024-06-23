@@ -1,12 +1,8 @@
 use core::fmt;
 use lazy_static::lazy_static;
-use std::{borrow::Borrow, collections::HashMap, env, fmt::Debug, rc::Rc};
+use std::{borrow::Borrow, collections::HashMap, fmt::Debug, rc::Rc};
 
-use crate::{
-    environment::{self, Environment},
-    expression::Stmt,
-    interpreter::Interpreter,
-};
+use crate::{environment::Environment, expression::Stmt, interpreter::Interpreter};
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq)]

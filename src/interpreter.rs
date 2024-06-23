@@ -1,6 +1,5 @@
 use core::panic;
 use std::{
-    cell::RefCell,
     rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -202,7 +201,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
                             error: "Cannot perform this with a number and nil".to_string(),
                         }),
                         // TODO - Maybe this is a bug??
-                        Value::Callable { callable } => Err(RuntimeError {
+                        Value::Callable { callable: _ } => Err(RuntimeError {
                             operator: operator.ttype,
                             error: "Cannot perform this with a number and Callable".to_string(),
                         }),
@@ -462,7 +461,12 @@ impl StmtVisitor<()> for Interpreter {
     }
 
     fn visit_function_stmt(&mut self, stmt: &Stmt) -> () {
-        if let Stmt::Function { name, params, body } = stmt {
+        if let Stmt::Function {
+            name,
+            params: _,
+            body: _,
+        } = stmt
+        {
             self.environment.define(
                 name,
                 &Value::Callable {
