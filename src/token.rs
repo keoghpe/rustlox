@@ -5,7 +5,7 @@ use std::{borrow::Borrow, collections::HashMap, fmt::Debug, rc::Rc};
 use crate::{
     environment::Environment,
     expression::Stmt,
-    interpreter::{ExpressionResult, Interpreter, RuntimeError},
+    interpreter::{ExpressionResult, Interpreter, InterpreterError},
 };
 
 #[allow(non_camel_case_types)]
@@ -162,11 +162,7 @@ impl Callable {
         }
     }
 
-    pub fn call(
-        &self,
-        interpreter: &mut Interpreter,
-        values: &Vec<Value>,
-    ) -> Result<Value, RuntimeError> {
+    pub fn call(&self, interpreter: &mut Interpreter, values: &Vec<Value>) -> ExpressionResult {
         match self {
             Callable::NativeFunction {
                 arity: _,
@@ -190,7 +186,12 @@ impl Callable {
                     // TODO Handle return
                     match interpreter.execute_block(body, environment) {
                         Ok(_) => Ok(Value::Nil),
-                        Err(err) => Err(err),
+                        Err(err) => match err {
+                            InterpreterError::RuntimeError { operator, error } => {
+                                Err(InterpreterError::RuntimeError { operator, error })
+                            }
+                            InterpreterError::Return { value } => Ok(value),
+                        },
                     }
                 } else {
                     panic!("Nope!")

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
 use crate::{
-    interpreter::{ExpressionResult, RuntimeError},
+    interpreter::{ExpressionResult, InterpreterError},
     token::{Token, Value},
 };
 
@@ -36,7 +36,7 @@ impl Environment {
         } else {
             match &self.enclosing {
                 Some(enclosing_environment) => enclosing_environment.assign(name, value),
-                None => Err(RuntimeError::new(
+                None => Err(InterpreterError::new_runtime_error(
                     name.ttype,
                     format!("Undefined variable '{}'", name.lexeme),
                 )),
@@ -53,7 +53,7 @@ impl Environment {
         } else {
             match &self.enclosing {
                 Some(enclosing_environment) => enclosing_environment.get(name),
-                None => Err(RuntimeError::new(
+                None => Err(InterpreterError::new_runtime_error(
                     name.ttype,
                     format!("Undefined variable '{}'", name.lexeme),
                 )),
@@ -116,7 +116,7 @@ mod tests {
         let environment = Environment::new(None);
 
         assert_eq!(
-            Err(RuntimeError::new(
+            Err(InterpreterError::new_runtime_error(
                 TokenType::IDENTIFIER,
                 "Undefined variable 'foo'".to_string()
             )),
@@ -136,7 +136,7 @@ mod tests {
         let mut environment = Environment::new(None);
 
         assert_eq!(
-            Err(RuntimeError::new(
+            Err(InterpreterError::new_runtime_error(
                 TokenType::IDENTIFIER,
                 "Undefined variable 'foo'".to_string()
             )),
@@ -204,7 +204,7 @@ mod tests {
         );
 
         assert_eq!(
-            Err(RuntimeError::new(
+            Err(InterpreterError::new_runtime_error(
                 TokenType::IDENTIFIER,
                 "Undefined variable 'foo'".to_string()
             )),

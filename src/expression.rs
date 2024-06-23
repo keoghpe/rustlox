@@ -1,7 +1,4 @@
-use crate::{
-    interpreter::Return,
-    token::{Token, Value},
-};
+use crate::token::{Token, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -141,7 +138,10 @@ impl Stmt {
                 params: _,
                 body: _,
             } => visitor.visit_function_stmt(self),
-            Stmt::Return { keyword, value } => visitor.visit_return_stmt(self),
+            Stmt::Return {
+                keyword: _,
+                value: _,
+            } => visitor.visit_return_stmt(self),
         }
     }
 }

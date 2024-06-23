@@ -16,28 +16,29 @@ pub struct Interpreter {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct RuntimeError {
-    // TODO Replace operator with token so we can print the line number in the error
-    operator: TokenType,
-    error: String,
+pub enum InterpreterError {
+    RuntimeError {
+        // TODO Replace operator with token so we can print the line number in the error
+        operator: TokenType,
+        error: String,
+    },
+    Return {
+        value: Value,
+    },
 }
 
-pub struct Return {
-    value: Value,
-}
-
-impl RuntimeError {
-    pub fn new(operator: TokenType, error: String) -> Self {
-        Self { operator, error }
+impl InterpreterError {
+    pub fn new_runtime_error(operator: TokenType, error: String) -> Self {
+        Self::RuntimeError { operator, error }
     }
 
-    fn to_string(&self) -> String {
-        format!("Error: {} ({})", self.error, self.operator)
-    }
+    // fn to_string(&self) -> String {
+    //     format!("Error: {} ({})", self.error, self.operator)
+    // }
 }
 
-pub type StatementResult = Result<(), RuntimeError>;
-pub type ExpressionResult = Result<Value, RuntimeError>;
+pub type StatementResult = Result<(), InterpreterError>;
+pub type ExpressionResult = Result<Value, InterpreterError>;
 
 impl Interpreter {
     pub fn new() -> Interpreter {
@@ -210,25 +211,25 @@ impl ExprVisitor<ExpressionResult> for Interpreter {
                             TokenType::LESS_EQUAL => Ok(Value::Boolean {
                                 value: left_value <= right_value,
                             }),
-                            op => Err(RuntimeError {
+                            op => Err(InterpreterError::RuntimeError {
                                 operator: op,
                                 error: "Cannot perform this operation on a number".to_string(),
                             }),
                         },
-                        Value::Boolean { value: _ } => Err(RuntimeError {
+                        Value::Boolean { value: _ } => Err(InterpreterError::RuntimeError {
                             operator: operator.ttype,
                             error: "Cannot perform this with a number and boolean".to_string(),
                         }),
-                        Value::String { value: _ } => Err(RuntimeError {
+                        Value::String { value: _ } => Err(InterpreterError::RuntimeError {
                             operator: operator.ttype,
                             error: "Cannot perform this with a number and a string".to_string(),
                         }),
-                        Value::Nil => Err(RuntimeError {
+                        Value::Nil => Err(InterpreterError::RuntimeError {
                             operator: operator.ttype,
                             error: "Cannot perform this with a number and nil".to_string(),
                         }),
                         // TODO - Maybe this is a bug??
-                        Value::Callable { callable: _ } => Err(RuntimeError {
+                        Value::Callable { callable: _ } => Err(InterpreterError::RuntimeError {
                             operator: operator.ttype,
                             error: "Cannot perform this with a number and Callable".to_string(),
                         }),
@@ -237,13 +238,13 @@ impl ExprVisitor<ExpressionResult> for Interpreter {
                         crate::token::TokenType::PLUS => Ok(Value::String {
                             value: left_value.to_string() + &right_val.to_string(),
                         }),
-                        op => Err(RuntimeError {
+                        op => Err(InterpreterError::RuntimeError {
                             operator: op,
                             error: "Cannot perform this operation on a string".to_string(),
                         }),
                     },
                     _ => match operator.ttype {
-                        op => Err(RuntimeError {
+                        op => Err(InterpreterError::RuntimeError {
                             operator: op,
                             error: "Cannot perform this operation on this type".to_string(),
                         }),
@@ -364,14 +365,14 @@ impl ExprVisitor<ExpressionResult> for Interpreter {
                 if func_arguments.len() == callable.arity() as usize {
                     callable.call(self, &func_arguments)
                 } else {
-                    return Err(RuntimeError {
+                    return Err(InterpreterError::RuntimeError {
                         operator: paren.ttype,
                         // TODO Interpolate this error correctly
                         error: "Expected x arguments, but got y".to_owned(),
                     });
                 }
             } else {
-                return Err(RuntimeError {
+                return Err(InterpreterError::RuntimeError {
                     operator: paren.ttype,
                     error: "Can only call functions and classes.".to_owned(),
                 });
@@ -471,7 +472,7 @@ impl StmtVisitor<StatementResult> for Interpreter {
 
                 match condition_result {
                     Ok(val) => {
-                        if self.is_truthy(&val) {
+                        if !self.is_truthy(&val) {
                             break;
                         }
                         // TODO Execute should return runtime errors if it breaks
@@ -515,7 +516,7 @@ impl StmtVisitor<StatementResult> for Interpreter {
 
     // TODO This should return a return with an enclosing value
     fn visit_return_stmt(&mut self, stmt: &Stmt) -> StatementResult {
-        if let Stmt::Return { keyword, value } = stmt {
+        if let Stmt::Return { keyword: _, value } = stmt {
             // self.environment.define(
             //     name,
             //     &Value::Callable {
@@ -527,8 +528,10 @@ impl StmtVisitor<StatementResult> for Interpreter {
 
             let value = self.evaluate(value);
 
-            // Return { value }
-            Ok(())
+            match value {
+                Ok(value) => Err(InterpreterError::Return { value }),
+                Err(err) => Err(err),
+            }
         } else {
             panic!("Nope")
         }

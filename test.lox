@@ -1,24 +1,37 @@
-fun sayHi(first, last) {
-    print "Hi, " + first + " " + last + "!";
+// fun sayHi(first, last) {
+    // print "Hi, " + first + " " + last + "!";
+// }
+
+// var a = "a";
+// var b = "b";
+
+// print a;
+// print b;
+
+// {
+  // b = "a";
+  // print a;
+  // print b;
+  // "abc" - "def";
+
+  // sayHi("Dear", "Reader");
+  // print a;
+  // print b;
+// }
+
+// print a;
+// print b;
+
+
+
+fun fib(n) {
+  if (n <= 1) return n;
+  return fib(n - 2) + fib(n - 1);
 }
 
-var a = "a";
-var b = "b";
+print("fib");
+print fib(5);
 
-print a;
-print b;
-
-{
-  b = "a";
-  print a;
-  print b;
-  "abc" - "def";
-
-  sayHi("Dear", "Reader");
-  print a;
-  print b;
+for (var i = 0; i < 20; i = i + 1) {
+  print fib(i);
 }
-
-print a;
-print b;
-
