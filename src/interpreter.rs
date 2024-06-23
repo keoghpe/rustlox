@@ -74,12 +74,17 @@ impl Interpreter {
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) {
         for statement in statements.into_iter() {
-            self.execute(statement)
-            // TODO Handle Errors
+            match self.execute(statement) {
+                Ok(_) => (),
+                Err(err) => {
+                    println!("Runtime Error caught at `interpret`: {:?}", err);
+                    break;
+                }
+            }
         }
     }
 
-    fn execute(&mut self, stmt: &Stmt) {
+    fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         stmt.accept(self)
     }
 
@@ -113,7 +118,11 @@ impl Interpreter {
         left == right
     }
 
-    pub fn execute_block(&mut self, statements: &Vec<Stmt>, environment: Environment) {
+    pub fn execute_block(
+        &mut self,
+        statements: &Vec<Stmt>,
+        environment: Environment,
+    ) -> Result<(), RuntimeError> {
         // Create a new env that refers to the current env
         // Replace the current env with the new env
         // Process the statements
@@ -124,11 +133,20 @@ impl Interpreter {
         self.environment = environment.into();
 
         for statement in statements.into_iter() {
-            self.execute(&statement);
+            match self.execute(&statement) {
+                Ok(_) => (),
+                Err(err) => {
+                    // reset environment - TODO Confirm if needed
+                    self.environment = prev;
+                    return Err(err);
+                }
+            }
         }
 
-        // TODO - this needs to reset to the previous env, not the enclosing of the current env
+        // TODO - I can't remember what I meant by the following comment, maybe it can be removed.
+        // TODO - this needs to reset to the previous env, not the enclosing of the current env.
         self.environment = prev;
+        Ok(())
     }
 }
 
@@ -361,41 +379,38 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
     }
 }
 
-impl StmtVisitor<()> for Interpreter {
-    fn visit_expression_stmt(&mut self, stmt: &crate::expression::Stmt) {
+impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
+    fn visit_expression_stmt(
+        &mut self,
+        stmt: &crate::expression::Stmt,
+    ) -> Result<(), RuntimeError> {
         // println!("Visiting expression statement");
         match stmt {
             Stmt::Expression { expr } => {
                 // TODO statements should raise errors
                 match self.evaluate(expr) {
-                    Ok(_) => (),
-                    Err(err) => println!("{:?}", err),
+                    Ok(_) => Ok(()),
+                    Err(err) => Err(err),
                 }
             }
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_print_stmt(&mut self, stmt: &crate::expression::Stmt) {
-        // println!("Visiting print statement");
+    fn visit_print_stmt(&mut self, stmt: &crate::expression::Stmt) -> Result<(), RuntimeError> {
         match stmt {
-            Stmt::Print { expr } => {
-                match self.evaluate(expr) {
-                    Ok(value) => {
-                        println!("{}", value)
-                    }
-                    Err(err) => {
-                        println!("{}", err.to_string());
-                        panic!("Nope!");
-                    }
+            Stmt::Print { expr } => match self.evaluate(expr) {
+                Ok(value) => {
+                    println!("{}", value);
+                    Ok(())
                 }
-                // TODO statements should raise errors
-            }
+                Err(err) => Err(err),
+            },
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_variable_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_variable_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         match stmt {
             Stmt::Var { name, initializer } => {
                 // TODO statements should raise errors
@@ -404,13 +419,13 @@ impl StmtVisitor<()> for Interpreter {
                     Some(initializer_expression) => match self.evaluate(initializer_expression) {
                         Ok(value) => {
                             self.environment.define(&name, &value);
+                            Ok(())
                         }
-                        Err(_) => {
-                            panic!("Nope!")
-                        }
+                        Err(err) => Err(err),
                     },
                     None => {
                         self.environment.define(&name, &Value::Nil);
+                        Ok(())
                     }
                 }
             }
@@ -418,17 +433,17 @@ impl StmtVisitor<()> for Interpreter {
         }
     }
 
-    fn visit_block_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_block_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         match stmt {
             Stmt::Block { statements } => {
                 let env = Environment::new(Some(Rc::clone(&self.environment)));
-                self.execute_block(statements, env);
+                self.execute_block(statements, env)
             }
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_if_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_if_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         if let Stmt::If {
             condition,
             then_branch,
@@ -440,27 +455,43 @@ impl StmtVisitor<()> for Interpreter {
                 self.execute(&then_branch)
             } else if let Some(else_stmt) = else_branch {
                 self.execute(else_stmt)
+            } else {
+                Ok(())
             }
         } else {
             panic!("Nope")
         }
     }
 
-    fn visit_while_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_while_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         if let Stmt::While { condition, body } = stmt {
             loop {
-                let val = self.evaluate(condition).unwrap();
-                if self.is_truthy(&val) {
-                    break;
+                // TODO replace unwrap with match
+                let condition_result = self.evaluate(condition);
+
+                match condition_result {
+                    Ok(val) => {
+                        if self.is_truthy(&val) {
+                            break;
+                        }
+                        // TODO Execute should return runtime errors if it breaks
+                        let exec_result = self.execute(&body);
+
+                        match exec_result {
+                            Ok(_) => (),
+                            Err(err) => return Err(err),
+                        }
+                    }
+                    Err(err) => return Err(err),
                 }
-                self.execute(&body)
             }
+            Ok(())
         } else {
             panic!("Nope")
         }
     }
 
-    fn visit_function_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_function_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         if let Stmt::Function {
             name,
             params: _,
@@ -474,7 +505,9 @@ impl StmtVisitor<()> for Interpreter {
                         declaration: Box::new(stmt.clone()),
                     },
                 },
-            )
+            );
+
+            Ok(())
         } else {
             panic!("Nope")
         }

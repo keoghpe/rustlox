@@ -12,6 +12,7 @@ print b;
   b = "a";
   print a;
   print b;
+  "abc" - "def";
 
   sayHi("Dear", "Reader");
   print a;
