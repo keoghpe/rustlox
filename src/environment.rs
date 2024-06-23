@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
 use crate::{
-    interpreter::RuntimeError,
+    interpreter::{ExpressionResult, RuntimeError},
     token::{Token, Value},
 };
 
@@ -26,7 +26,7 @@ impl Environment {
         values_changer.insert(name.lexeme.to_string(), value.clone());
     }
 
-    pub fn assign(&self, name: &Token, value: &Value) -> Result<Value, RuntimeError> {
+    pub fn assign(&self, name: &Token, value: &Value) -> ExpressionResult {
         // println!("Assigning variable: {}", name.lexeme);
         let mut values_changer = self.values.lock().unwrap();
 
@@ -44,7 +44,7 @@ impl Environment {
         }
     }
 
-    pub fn get(&self, name: Token) -> Result<Value, RuntimeError> {
+    pub fn get(&self, name: Token) -> ExpressionResult {
         // println!("Getting variable: {}", name.lexeme);
         let values_changer = self.values.lock().unwrap();
         // TODO We should not clone here

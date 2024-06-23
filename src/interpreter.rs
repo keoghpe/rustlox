@@ -15,15 +15,15 @@ pub struct Interpreter {
     environment: Rc<Environment>,
 }
 
-pub struct Return {
-    value: Value,
-}
-
 #[derive(Debug, PartialEq)]
 pub struct RuntimeError {
     // TODO Replace operator with token so we can print the line number in the error
     operator: TokenType,
     error: String,
+}
+
+pub struct Return {
+    value: Value,
 }
 
 impl RuntimeError {
@@ -35,6 +35,9 @@ impl RuntimeError {
         format!("Error: {} ({})", self.error, self.operator)
     }
 }
+
+pub type StatementResult = Result<(), RuntimeError>;
+pub type ExpressionResult = Result<Value, RuntimeError>;
 
 impl Interpreter {
     pub fn new() -> Interpreter {
@@ -63,9 +66,9 @@ impl Interpreter {
                                 .duration_since(UNIX_EPOCH)
                                 .expect("Time went backwards");
 
-                            Value::Double {
+                            Ok(Value::Double {
                                 value: since_the_epoch.as_millis() as f64,
-                            }
+                            })
                         }
                     },
                     value: "<native fn>".to_owned(),
@@ -88,11 +91,11 @@ impl Interpreter {
         }
     }
 
-    fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+    fn execute(&mut self, stmt: &Stmt) -> StatementResult {
         stmt.accept(self)
     }
 
-    pub fn evaluate(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
+    pub fn evaluate(&mut self, expr: &Expr) -> ExpressionResult {
         expr.accept(self)
     }
 
@@ -127,7 +130,7 @@ impl Interpreter {
         &mut self,
         statements: &Vec<Stmt>,
         environment: Environment,
-    ) -> Result<(), RuntimeError> {
+    ) -> StatementResult {
         // Create a new env that refers to the current env
         // Replace the current env with the new env
         // Process the statements
@@ -156,8 +159,8 @@ impl Interpreter {
     }
 }
 
-impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
-    fn visit_binary_expr(&mut self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
+impl ExprVisitor<ExpressionResult> for Interpreter {
+    fn visit_binary_expr(&mut self, expr: &crate::expression::Expr) -> ExpressionResult {
         match expr {
             Expr::Binary {
                 left,
@@ -251,27 +254,21 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_grouping_expr(
-        &mut self,
-        expr: &crate::expression::Expr,
-    ) -> Result<Value, RuntimeError> {
+    fn visit_grouping_expr(&mut self, expr: &crate::expression::Expr) -> ExpressionResult {
         match expr {
             Expr::Grouping { expression } => self.evaluate(&expression),
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_literal_expr(
-        &mut self,
-        expr: &crate::expression::Expr,
-    ) -> Result<Value, RuntimeError> {
+    fn visit_literal_expr(&mut self, expr: &crate::expression::Expr) -> ExpressionResult {
         match expr {
             Expr::Literal { value } => Ok(value.clone()),
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_unary_expr(&mut self, expr: &crate::expression::Expr) -> Result<Value, RuntimeError> {
+    fn visit_unary_expr(&mut self, expr: &crate::expression::Expr) -> ExpressionResult {
         match expr {
             Expr::Unary { operator, right } => {
                 let right_val = match self.evaluate(right) {
@@ -295,14 +292,14 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_variable_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
+    fn visit_variable_expr(&mut self, expr: &Expr) -> ExpressionResult {
         match expr {
             Expr::Variable { name } => self.environment.get(name.clone()),
             _ => panic!("Nope!"),
         }
     }
 
-    fn visit_assign_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
+    fn visit_assign_expr(&mut self, expr: &Expr) -> ExpressionResult {
         match expr {
             Expr::Assign { name, value } => {
                 let value = self.evaluate(value);
@@ -316,7 +313,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_logical_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
+    fn visit_logical_expr(&mut self, expr: &Expr) -> ExpressionResult {
         if let Expr::Logical {
             left,
             operator,
@@ -346,7 +343,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_call_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
+    fn visit_call_expr(&mut self, expr: &Expr) -> ExpressionResult {
         if let Expr::Call {
             callee,
             paren,
@@ -365,7 +362,7 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
 
             if let Ok(Value::Callable { callable }) = callee_res {
                 if func_arguments.len() == callable.arity() as usize {
-                    Ok(callable.call(self, &func_arguments))
+                    callable.call(self, &func_arguments)
                 } else {
                     return Err(RuntimeError {
                         operator: paren.ttype,
@@ -385,11 +382,8 @@ impl ExprVisitor<Result<Value, RuntimeError>> for Interpreter {
     }
 }
 
-impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
-    fn visit_expression_stmt(
-        &mut self,
-        stmt: &crate::expression::Stmt,
-    ) -> Result<(), RuntimeError> {
+impl StmtVisitor<StatementResult> for Interpreter {
+    fn visit_expression_stmt(&mut self, stmt: &crate::expression::Stmt) -> StatementResult {
         // println!("Visiting expression statement");
         match stmt {
             Stmt::Expression { expr } => {
@@ -403,7 +397,7 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_print_stmt(&mut self, stmt: &crate::expression::Stmt) -> Result<(), RuntimeError> {
+    fn visit_print_stmt(&mut self, stmt: &crate::expression::Stmt) -> StatementResult {
         match stmt {
             Stmt::Print { expr } => match self.evaluate(expr) {
                 Ok(value) => {
@@ -416,7 +410,7 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_variable_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+    fn visit_variable_stmt(&mut self, stmt: &Stmt) -> StatementResult {
         match stmt {
             Stmt::Var { name, initializer } => {
                 // TODO statements should raise errors
@@ -439,7 +433,7 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_block_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+    fn visit_block_stmt(&mut self, stmt: &Stmt) -> StatementResult {
         match stmt {
             Stmt::Block { statements } => {
                 let env = Environment::new(Some(Rc::clone(&self.environment)));
@@ -449,7 +443,7 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_if_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+    fn visit_if_stmt(&mut self, stmt: &Stmt) -> StatementResult {
         if let Stmt::If {
             condition,
             then_branch,
@@ -469,7 +463,7 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_while_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+    fn visit_while_stmt(&mut self, stmt: &Stmt) -> StatementResult {
         if let Stmt::While { condition, body } = stmt {
             loop {
                 // TODO replace unwrap with match
@@ -497,7 +491,7 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_function_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+    fn visit_function_stmt(&mut self, stmt: &Stmt) -> StatementResult {
         if let Stmt::Function {
             name,
             params: _,
@@ -520,7 +514,7 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
     }
 
     // TODO This should return a return with an enclosing value
-    fn visit_return_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_return_stmt(&mut self, stmt: &Stmt) -> StatementResult {
         if let Stmt::Return { keyword, value } = stmt {
             // self.environment.define(
             //     name,
@@ -534,6 +528,7 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
             let value = self.evaluate(value);
 
             // Return { value }
+            Ok(())
         } else {
             panic!("Nope")
         }

@@ -2,7 +2,11 @@ use core::fmt;
 use lazy_static::lazy_static;
 use std::{borrow::Borrow, collections::HashMap, fmt::Debug, rc::Rc};
 
-use crate::{environment::Environment, expression::Stmt, interpreter::Interpreter};
+use crate::{
+    environment::Environment,
+    expression::Stmt,
+    interpreter::{ExpressionResult, Interpreter, RuntimeError},
+};
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -127,7 +131,7 @@ impl fmt::Display for TokenType {
 pub enum Callable {
     NativeFunction {
         arity: i8,
-        call: fn(&Interpreter, &Vec<Value>) -> Value,
+        call: fn(&Interpreter, &Vec<Value>) -> ExpressionResult,
         value: String,
     },
     Function {
@@ -158,7 +162,11 @@ impl Callable {
         }
     }
 
-    pub fn call(&self, interpreter: &mut Interpreter, values: &Vec<Value>) -> Value {
+    pub fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        values: &Vec<Value>,
+    ) -> Result<Value, RuntimeError> {
         match self {
             Callable::NativeFunction {
                 arity: _,
@@ -180,9 +188,10 @@ impl Callable {
                     }
 
                     // TODO Handle return
-                    interpreter.execute_block(body, environment);
-                    // TODO Why do we return nil here?
-                    Value::Nil
+                    match interpreter.execute_block(body, environment) {
+                        Ok(_) => Ok(Value::Nil),
+                        Err(err) => Err(err),
+                    }
                 } else {
                     panic!("Nope!")
                 }
