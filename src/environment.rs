@@ -1,5 +1,7 @@
 use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
+use log::debug;
+
 use crate::{
     interpreter::{ExpressionResult, InterpreterError},
     token::{Token, Value},
@@ -20,14 +22,14 @@ impl Environment {
     }
 
     pub fn define(&self, name: &Token, value: &Value) {
-        // println!("Defining variable: {}", name.lexeme);
+        debug!("Defining variable: {}", name.lexeme);
 
         let mut values_changer = self.values.lock().unwrap();
         values_changer.insert(name.lexeme.to_string(), value.clone());
     }
 
     pub fn assign(&self, name: &Token, value: &Value) -> ExpressionResult {
-        // println!("Assigning variable: {}", name.lexeme);
+        debug!("Assigning variable: {}", name.lexeme);
         let mut values_changer = self.values.lock().unwrap();
 
         if values_changer.contains_key(&name.lexeme) {
@@ -45,18 +47,26 @@ impl Environment {
     }
 
     pub fn get(&self, name: Token) -> ExpressionResult {
-        // println!("Getting variable: {}", name.lexeme);
+        debug!("Getting variable: {}", name.lexeme);
         let values_changer = self.values.lock().unwrap();
         // TODO We should not clone here
         if values_changer.contains_key(&name.lexeme) {
             Ok(values_changer.get(&name.lexeme).unwrap().clone())
         } else {
             match &self.enclosing {
-                Some(enclosing_environment) => enclosing_environment.get(name),
-                None => Err(InterpreterError::new_runtime_error(
-                    name.ttype,
-                    format!("Undefined variable '{}'", name.lexeme),
-                )),
+                Some(enclosing_environment) => {
+                    debug!("Getting from enclosing env");
+
+                    enclosing_environment.get(name)
+                }
+                None => {
+                    debug!("No enclosing env");
+
+                    Err(InterpreterError::new_runtime_error(
+                        name.ttype,
+                        format!("Undefined variable '{}'", name.lexeme),
+                    ))
+                }
             }
         }
     }

@@ -4,6 +4,7 @@ use std::{
 };
 
 use crate::interpreter::Interpreter;
+use env_logger::Env;
 
 mod environment;
 mod expression;
@@ -14,6 +15,8 @@ mod token;
 static mut HAD_ERROR: bool = false;
 
 fn main() {
+    env_logger::init();
+
     if env::args().len() > 2 {
         println!("Usage: rustlox [script]");
     } else if env::args().len() == 2 {

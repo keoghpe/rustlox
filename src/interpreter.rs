@@ -504,6 +504,7 @@ impl StmtVisitor<StatementResult> for Interpreter {
                 &Value::Callable {
                     callable: Callable::Function {
                         declaration: Box::new(stmt.clone()),
+                        closure: Rc::clone(&self.environment),
                     },
                 },
             );

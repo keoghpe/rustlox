@@ -127,7 +127,7 @@ impl fmt::Display for TokenType {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug)]
 pub enum Callable {
     NativeFunction {
         arity: i8,
@@ -136,6 +136,7 @@ pub enum Callable {
     },
     Function {
         declaration: Box<Stmt>,
+        closure: Rc<Environment>,
     },
 }
 
@@ -147,7 +148,10 @@ impl Callable {
                 call: _,
                 value: _,
             } => arity.clone(),
-            Callable::Function { declaration } => {
+            Callable::Function {
+                declaration,
+                closure: _,
+            } => {
                 if let Stmt::Function {
                     name: _,
                     params,
@@ -169,15 +173,17 @@ impl Callable {
                 call,
                 value: _,
             } => call(interpreter, values),
-            Callable::Function { declaration } => {
+            Callable::Function {
+                declaration,
+                closure,
+            } => {
                 if let Stmt::Function {
                     name: _,
                     params,
                     body,
                 } = declaration.as_ref()
                 {
-                    // TODO Environment should have globals as it's enclosing.
-                    let environment = Environment::new(Some(Rc::clone(&interpreter.global)));
+                    let environment = Environment::new(Some(Rc::clone(&closure)));
 
                     for (i, param) in params.iter().enumerate() {
                         environment.define(param, &values[i]);
@@ -207,7 +213,10 @@ impl Callable {
                 call: _,
                 value,
             } => value.clone(),
-            Callable::Function { declaration } => {
+            Callable::Function {
+                declaration,
+                closure: _,
+            } => {
                 if let Stmt::Function {
                     name,
                     params: _,
@@ -223,7 +232,7 @@ impl Callable {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug)]
 pub enum Value {
     Boolean { value: bool },
     Double { value: f64 },
@@ -240,6 +249,21 @@ impl fmt::Display for Value {
             Value::String { value } => f.write_str(&value.to_string()),
             Value::Nil => f.write_str(&"Nil".to_string()),
             Value::Callable { callable } => f.write_str(&callable.value()),
+        }
+    }
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::Boolean { value: v1 }, Value::Boolean { value: v2 }) => v1 == v2,
+            (Value::Double { value: v1 }, Value::Double { value: v2 }) => v1 == v2,
+            (Value::String { value: v1 }, Value::String { value: v2 }) => v1 == v2,
+            (Value::Nil, Value::Nil) => true,
+            // TODO proper implemenentaion for Callable
+            // For now, just assume that comparing two Callables should return false
+            (Value::Callable { callable: _c1 }, Value::Callable { callable: _c2 }) => false,
+            _ => false,
         }
     }
 }
