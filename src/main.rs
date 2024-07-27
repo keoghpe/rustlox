@@ -4,7 +4,6 @@ use std::{
 };
 
 use crate::interpreter::Interpreter;
-use env_logger::Env;
 
 mod environment;
 mod expression;
