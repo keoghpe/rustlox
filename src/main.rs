@@ -9,6 +9,7 @@ mod environment;
 mod expression;
 mod interpreter;
 mod parser;
+mod resolver;
 mod token;
 
 static mut HAD_ERROR: bool = false;
