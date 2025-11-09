@@ -133,7 +133,11 @@ impl StmtVisitor<()> for Resolver {
         });
     }
 
-    fn visit_print_stmt(&mut self, stmt: &Stmt) {}
+    fn visit_print_stmt(&mut self, stmt: &Stmt) {
+        match_or_panic!(stmt, Stmt::Print { expr } => {
+          self.resolve_expression(expr);
+        })
+    }
 
     fn visit_variable_stmt(&mut self, stmt: &Stmt) {
         match_or_panic!(stmt, Stmt::Var { name, initializer } => {
@@ -181,6 +185,7 @@ impl StmtVisitor<()> for Resolver {
     }
 
     fn visit_return_stmt(&mut self, stmt: &Stmt) {
-        todo!()
+        match_or_panic!(stmt, Stmt::Return {expr, keyword, value } => {
+        })
     }
 }
