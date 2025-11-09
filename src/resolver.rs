@@ -6,6 +6,16 @@ use crate::{
     token::Token,
 };
 
+// Macro to simplify match statements with panic on non-match
+macro_rules! match_or_panic {
+    ($value:expr, $pattern:pat => $body:block) => {
+        match $value {
+            $pattern => $body,
+            _ => panic!(),
+        }
+    };
+}
+
 pub struct Resolver {
     interpreter: Interpreter,
     scopes: Vec<HashMap<String, bool>>,
@@ -32,6 +42,12 @@ impl Resolver {
 
     fn declare(&mut self, name: &Token) {
         if let Some(scope) = self.scopes.last_mut() {
+            scope.insert(name.lexeme.to_string(), false);
+        }
+    }
+
+    fn define(&mut self, name: &Token) {
+        if let Some(scope) = self.scopes.last_mut() {
             scope.insert(name.lexeme.to_string(), true);
         }
     }
@@ -48,32 +64,26 @@ impl Resolver {
     }
 
     fn resolve_function(&mut self, function: &Stmt) {
-        match function {
-            Stmt::Function { name, params, body } => {
-                self.begin_scope();
+        match_or_panic!(function, Stmt::Function { name, params, body } => {
+            self.begin_scope();
 
-                for param in params.into_iter() {
-                    self.declare(name);
-                    self.define(name);
-                }
-
-                self.resolve_statements(body);
-                self.end_scope();
+            for param in params.into_iter() {
+                self.declare(name);
+                self.define(name);
             }
-            _ => panic!(),
-        }
+
+            self.resolve_statements(body);
+            self.end_scope();
+        });
     }
 }
 
 impl ExprVisitor<()> for Resolver {
     fn visit_assign_expr(&mut self, expr: &Expr) {
-        match expr {
-            Expr::Assign { name, value } => {
-                self.resolve_expression(value);
-                self.resolve_local(expr, name);
-            }
-            _ => panic!(),
-        }
+        match_or_panic!(expr, Expr::Assign { name, value } => {
+            self.resolve_expression(value);
+            self.resolve_local(expr, name);
+        });
     }
 
     fn visit_binary_expr(&mut self, expr: &Expr) {
@@ -93,21 +103,18 @@ impl ExprVisitor<()> for Resolver {
     }
 
     fn visit_variable_expr(&mut self, expr: &Expr) {
-        match expr {
-            Expr::Variable { name } => {
-                if let Some(scope) = self.scopes.last() {
-                    if let Some(value) = scope.get(&name.lexeme) {
-                        if *value == false {
-                            // error
-                            panic!("You can't do that - crashing");
-                        }
+        match_or_panic!(expr, Expr::Variable { name } => {
+            if let Some(scope) = self.scopes.last() {
+                if let Some(value) = scope.get(&name.lexeme) {
+                    if *value == false {
+                        // error
+                        panic!("You can't do that - crashing");
                     }
                 }
-
-                self.resolve_local(expr, name);
             }
-            _ => panic!(),
-        }
+
+            self.resolve_local(expr, name);
+        });
     }
 
     fn visit_logical_expr(&mut self, expr: &Expr) {
@@ -121,56 +128,44 @@ impl ExprVisitor<()> for Resolver {
 
 impl StmtVisitor<()> for Resolver {
     fn visit_expression_stmt(&mut self, stmt: &Stmt) {
-        match stmt {
-            Stmt::Expression { expr } => {
-                self.resolve_expression(expr.as_ref());
-            }
-            _ => panic!(),
-        }
+        match_or_panic!(stmt, Stmt::Expression { expr } => {
+            self.resolve_expression(expr.as_ref());
+        });
     }
 
     fn visit_print_stmt(&mut self, stmt: &Stmt) {}
 
     fn visit_variable_stmt(&mut self, stmt: &Stmt) {
-        match stmt {
-            Stmt::Var { name, initializer } => {
-                self.declare(name);
-                match initializer {
-                    Some(init) => self.resolve_expression(init),
-                    None => (),
-                }
-                self.define(name);
+        match_or_panic!(stmt, Stmt::Var { name, initializer } => {
+            self.declare(name);
+            match initializer {
+                Some(init) => self.resolve_expression(init),
+                None => (),
             }
-            _ => panic!(),
-        }
+            self.define(name);
+        });
     }
 
     fn visit_block_stmt(&mut self, stmt: &Stmt) {
-        match stmt {
-            Stmt::Block { statements } => {
-                self.begin_scope();
-                self.resolve_statements(statements);
-                self.end_scope();
-            }
-            _ => panic!(),
-        }
+        match_or_panic!(stmt, Stmt::Block { statements } => {
+            self.begin_scope();
+            self.resolve_statements(statements);
+            self.end_scope();
+        });
     }
 
     fn visit_if_stmt(&mut self, stmt: &Stmt) {
-        match stmt {
-            Stmt::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
-                self.resolve_expression(condition);
-                self.resolve_statement(then_branch.as_ref());
-                if let Some(else_stmt) = else_branch {
-                    self.resolve_statement(else_stmt.as_ref());
-                }
+        match_or_panic!(stmt, Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            self.resolve_expression(condition);
+            self.resolve_statement(then_branch.as_ref());
+            if let Some(else_stmt) = else_branch {
+                self.resolve_statement(else_stmt.as_ref());
             }
-            _ => panic!(),
-        }
+        });
     }
 
     fn visit_while_stmt(&mut self, stmt: &Stmt) {
@@ -178,15 +173,11 @@ impl StmtVisitor<()> for Resolver {
     }
 
     fn visit_function_stmt(&mut self, stmt: &Stmt) {
-        match stmt {
-            Stmt::Function { name, params, body } => {
-                self.declare(name);
-                self.define(name);
-
-                self.resolve_function(stmt);
-            }
-            _ => panic!(),
-        }
+        match_or_panic!(stmt, Stmt::Function { name, params, body } => {
+            self.declare(name);
+            self.define(name);
+            self.resolve_function(stmt);
+        });
     }
 
     fn visit_return_stmt(&mut self, stmt: &Stmt) {
